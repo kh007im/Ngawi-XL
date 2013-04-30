@@ -778,8 +778,15 @@ static ssize_t show_protocols(struct device *device,
 	} else if (dev->raw) {
 		enabled = dev->raw->enabled_protocols;
 		allowed = ir_raw_get_allowed_protocols();
+<<<<<<< HEAD
 	} else
 		return -ENODEV;
+=======
+	} else {
+		mutex_unlock(&dev->lock);
+		return -ENODEV;
+	}
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 
 	IR_dprintk(1, "allowed - 0x%llx, enabled - 0x%llx\n",
 		   (long long)allowed,

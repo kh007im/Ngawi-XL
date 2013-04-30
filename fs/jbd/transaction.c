@@ -1963,7 +1963,13 @@ retry:
 			spin_unlock(&journal->j_list_lock);
 			jbd_unlock_bh_state(bh);
 			spin_unlock(&journal->j_state_lock);
+<<<<<<< HEAD
 			log_wait_commit(journal, tid);
+=======
+			unlock_buffer(bh);
+			log_wait_commit(journal, tid);
+			lock_buffer(bh);
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 			goto retry;
 		}
 		/*

@@ -1138,7 +1138,11 @@ static int __device_suspend(struct device *dev, pm_message_t state, bool async)
 	device_unlock(dev);
 	del_timer_sync(&timer);
 	destroy_timer_on_stack(&timer);
+<<<<<<< HEAD
 	
+=======
+
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
  Complete:
 	complete_all(&dev->power.completion);
 

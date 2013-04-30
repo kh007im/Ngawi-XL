@@ -626,6 +626,7 @@ static int netconsole_netdev_event(struct notifier_block *this,
 		goto done;
 
 	spin_lock_irqsave(&target_list_lock, flags);
+restart:
 	list_for_each_entry(nt, &target_list, list) {
 		netconsole_target_get(nt);
 		if (nt->np.dev == dev) {
@@ -637,8 +638,10 @@ static int netconsole_netdev_event(struct notifier_block *this,
 			case NETDEV_JOIN:
 			case NETDEV_UNREGISTER:
 				/*
+				 * we might sleep in __netpoll_cleanup()
 				 * rtnl_lock already held
 				 */
+<<<<<<< HEAD
 				if (nt->np.dev) {
 					spin_unlock_irqrestore(
 							      &target_list_lock,
@@ -649,9 +652,17 @@ static int netconsole_netdev_event(struct notifier_block *this,
 					dev_put(nt->np.dev);
 					nt->np.dev = NULL;
 				}
+=======
+				spin_unlock_irqrestore(&target_list_lock, flags);
+				__netpoll_cleanup(&nt->np);
+				spin_lock_irqsave(&target_list_lock, flags);
+				dev_put(nt->np.dev);
+				nt->np.dev = NULL;
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 				nt->enabled = 0;
 				stopped = true;
-				break;
+				netconsole_target_put(nt);
+				goto restart;
 			}
 		}
 		netconsole_target_put(nt);

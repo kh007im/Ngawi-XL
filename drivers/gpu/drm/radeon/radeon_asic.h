@@ -400,6 +400,10 @@ void r700_cp_fini(struct radeon_device *rdev);
 struct evergreen_mc_save {
 	u32 vga_render_control;
 	u32 vga_hdp_control;
+<<<<<<< HEAD
+=======
+	bool crtc_enabled[RADEON_MAX_CRTCS];
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 };
 
 void evergreen_pcie_gart_tlb_flush(struct radeon_device *rdev);

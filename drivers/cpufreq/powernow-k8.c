@@ -1223,6 +1223,7 @@ static int powernowk8_target(struct cpufreq_policy *pol,
 	struct powernowk8_target_arg pta = { .pol = pol, .targfreq = targfreq,
 					     .relation = relation };
 
+<<<<<<< HEAD
 	/*
 	 * Must run on @pol->cpu.  cpufreq core is responsible for ensuring
 	 * that we're bound to the current CPU and pol->cpu stays online.
@@ -1231,6 +1232,9 @@ static int powernowk8_target(struct cpufreq_policy *pol,
 		return powernowk8_target_fn(&pta);
 	else
 		return work_on_cpu(pol->cpu, powernowk8_target_fn, &pta);
+=======
+	return work_on_cpu(pol->cpu, powernowk8_target_fn, &pta);
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 }
 
 /* Driver entry point to verify the policy and range of frequencies */
