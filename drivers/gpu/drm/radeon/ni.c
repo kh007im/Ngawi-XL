@@ -673,8 +673,13 @@ static void cayman_gpu_init(struct radeon_device *rdev)
 		    (rdev->pdev->device == 0x9910) ||
 		    (rdev->pdev->device == 0x9917) ||
 <<<<<<< HEAD
+<<<<<<< HEAD
 		    (rdev->pdev->device == 0x9999)) {
 >>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
+=======
+		    (rdev->pdev->device == 0x9999) ||
+		    (rdev->pdev->device == 0x999C)) {
+>>>>>>> 1418598... Squashed update of kernel from 3.4.44 to 3.4.45
 =======
 		    (rdev->pdev->device == 0x9999) ||
 		    (rdev->pdev->device == 0x999C)) {
