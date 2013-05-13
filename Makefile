@@ -1,6 +1,10 @@
 VERSION = 3
 PATCHLEVEL = 4
+<<<<<<< HEAD
 SUBLEVEL = 43
+=======
+SUBLEVEL = 45
+>>>>>>> 1418598... Squashed update of kernel from 3.4.44 to 3.4.45
 EXTRAVERSION =
 NAME = Saber-toothed Squirrel
 
