@@ -209,6 +209,7 @@ static inline bool virtqueue_enable_cb(struct virtqueue *vq)
 	return vq->vq_ops->enable_cb(vq);
 }
 
+<<<<<<< HEAD
 /**
  * virtqueue_enable_cb_delayed - restart callbacks after disable_cb.
  * @vq: the struct virtqueue we're talking about.
@@ -226,6 +227,13 @@ static inline bool virtqueue_enable_cb_delayed(struct virtqueue *vq)
 {
 	return vq->vq_ops->enable_cb_delayed(vq);
 }
+=======
+unsigned virtqueue_enable_cb_prepare(struct virtqueue *vq);
+
+bool virtqueue_poll(struct virtqueue *vq, unsigned);
+
+bool virtqueue_enable_cb_delayed(struct virtqueue *vq);
+>>>>>>> d21196c... Squashed update of kernel from 3.4.55 to 3.4.56
 
 /**
  * virtqueue_detach_unused_buf - detach first unused buffer
