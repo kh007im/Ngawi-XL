@@ -60,6 +60,31 @@ struct cpu_freq {
 
 static DEFINE_PER_CPU(struct cpu_freq, cpu_freq_info);
 
+/** cmdline defs **/
+uint32_t maxscroff = 0;
+uint32_t maxscroff_freq = 702000;
+uint32_t old_max = 0;
+
+static int __init cpufreq_read_arg_maxscroff(char *max_so)
+{
+	unsigned long ui_khz;
+	int err;
+
+	err = strict_strtoul(max_so, 0, &ui_khz);
+	if (err) {
+	    maxscroff = 0;
+	    printk(KERN_INFO "[Maxscroff toggle]: max_so='%i'\n", maxscroff);
+	    return 1;
+	}
+
+	maxscroff = ui_khz;
+        return 1;
+}
+
+__setup("max_so=", cpufreq_read_arg_maxscroff);
+
+/** cmdline end **/
+
 static int set_cpu_freq(struct cpufreq_policy *policy, unsigned int new_freq)
 {
 	int ret = 0;
@@ -118,6 +143,35 @@ static void set_cpu_work(struct work_struct *work)
 	cpu_work->status = set_cpu_freq(cpu_work->policy, cpu_work->frequency);
 	complete(&cpu_work->complete);
 }
+
+/** max screen off **/
+
+static void msm_cpufreq_early_suspend(struct early_suspend *h)
+{
+	struct cpufreq_policy *policy;
+
+	policy = cpufreq_cpu_get(0);
+	old_max = policy->max;
+	policy->max = maxscroff_freq;
+	printk(KERN_INFO "[Maxscroff]: Limited freq to '%u'\n", maxscroff_freq);
+}
+
+static void msm_cpufreq_late_resume(struct early_suspend *h)
+{
+	struct cpufreq_policy *policy;
+
+	policy = cpufreq_cpu_get(0);
+	policy->max = old_max;
+	printk(KERN_INFO "[Maxscroff]: Restoring freq to '%u'\n", old_max);
+}
+
+static struct early_suspend msm_cpufreq_early_suspend_handler = {
+	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 10,
+	.suspend = msm_cpufreq_early_suspend,
+	.resume = msm_cpufreq_late_resume,
+};
+
+/** end max screen off **/
 
 static int msm_cpufreq_target(struct cpufreq_policy *policy,
 				unsigned int target_freq,
@@ -310,8 +364,7 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 			policy->cpu, cur_freq, table[index].frequency);
 	policy->cur = table[index].frequency;
 
-	policy->cpuinfo.transition_latency =
-		acpuclk_get_switch_time() * NSEC_PER_USEC;
+	policy->cpuinfo.transition_latency = 10 * 1000;
 
 	cpu_work = &per_cpu(cpufreq_work, policy->cpu);
 	INIT_WORK(&cpu_work->work, set_cpu_work);
@@ -377,8 +430,59 @@ static int msm_cpufreq_resume(struct cpufreq_policy *policy)
 	return 0;
 }
 
-static struct freq_attr *msm_freq_attr[] = {
+/** cmdline **/
+
+static ssize_t show_max_screen_off_khz(struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%u\n", maxscroff_freq);
+}
+
+static ssize_t store_max_screen_off_khz(struct cpufreq_policy *policy,
+		const char *buf, size_t count)
+{
+	unsigned int freq = 0;
+	int ret;
+	int index;
+	struct cpufreq_frequency_table *freq_table = cpufreq_frequency_get_table(policy->cpu);
+
+	if (!freq_table)
+		return -EINVAL;
+
+	ret = sscanf(buf, "%u", &freq);
+	if (ret != 1)
+		return -EINVAL;
+
+	mutex_lock(&per_cpu(cpufreq_suspend, policy->cpu).suspend_mutex);
+
+	ret = cpufreq_frequency_table_target(policy, freq_table, freq,
+			CPUFREQ_RELATION_H, &index);
+	if (ret)
+		goto out;
+
+	maxscroff_freq = freq_table[index].frequency;
+
+	ret = count;
+
+out:
+	mutex_unlock(&per_cpu(cpufreq_suspend, policy->cpu).suspend_mutex);
+	return ret;
+}
+
+struct freq_attr msm_cpufreq_attr_max_screen_off_khz = {
+	.attr = { .name = "screen_off_max_freq",
+		.mode = 0644,
+	},
+	.show = show_max_screen_off_khz,
+	.store = store_max_screen_off_khz,
+};
+
+/** cmdline end **/
+
+static struct freq_attr *msm_cpufreq_attr[] = {
 	&cpufreq_freq_attr_scaling_available_freqs,
+/** cmdline off **/
+	&msm_cpufreq_attr_max_screen_off_khz,
+/** cmdline end **/
 	NULL,
 };
 
@@ -392,7 +496,7 @@ static struct cpufreq_driver msm_cpufreq_driver = {
 	.suspend	= msm_cpufreq_suspend,
 	.resume		= msm_cpufreq_resume,
 	.name		= "msm",
-	.attr		= msm_freq_attr,
+	.attr		= msm_cpufreq_attr,
 };
 
 static int __init msm_cpufreq_register(void)
@@ -406,7 +510,11 @@ static int __init msm_cpufreq_register(void)
 
 	msm_cpufreq_wq = create_workqueue("msm-cpufreq");
 	register_hotcpu_notifier(&msm_cpufreq_cpu_notifier);
-
+/** cmdline **/
+	if (maxscroff == 1) {
+		register_early_suspend(&msm_cpufreq_early_suspend_handler);
+	}
+/** cmdline end **/
 	return cpufreq_register_driver(&msm_cpufreq_driver);
 }
 

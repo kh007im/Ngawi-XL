@@ -937,7 +937,7 @@ static void __init bus_init(const struct l2_level *l2_level)
 
 #ifdef CONFIG_CPU_VOLTAGE_TABLE
 #define HFPLL_MIN_VDD                 600000
-#define HFPLL_MAX_VDD                1300000
+#define HFPLL_MAX_VDD                1350000
 
 ssize_t acpuclk_get_vdd_levels_str(char *buf) {
 
@@ -1225,7 +1225,6 @@ static void __init hw_init(void)
 	}
 
 	bus_init(l2_level);
-	acpuclk_krait_set_rate(0, 1026000, SETRATE_CPUFREQ);
 }
 
 int __init acpuclk_krait_init(struct device *dev,

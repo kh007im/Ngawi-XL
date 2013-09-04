@@ -147,3 +147,4 @@ obj-$(CONFIG_CORESIGHT)		+= coresight/
 obj-$(CONFIG_CCI_DRIVERS)       += cci/
 #[SA77] <== CCI KLog, added by Jimmy@CCI
 
+obj-y				+= exfat/
