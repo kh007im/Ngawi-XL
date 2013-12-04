@@ -139,8 +139,6 @@ static int esp_output(struct xfrm_state *x, struct sk_buff *skb)
 
 	/* skb is pure payload to encrypt */
 
-	err = -ENOMEM;
-
 	esp = x->data;
 	aead = esp->aead;
 	alen = crypto_aead_authsize(aead);
@@ -176,8 +174,10 @@ static int esp_output(struct xfrm_state *x, struct sk_buff *skb)
 	}
 
 	tmp = esp_alloc_tmp(aead, nfrags + sglists, seqhilen);
-	if (!tmp)
+	if (!tmp) {
+		err = -ENOMEM;
 		goto error;
+	}
 
 	seqhi = esp_tmp_seqhi(tmp);
 	iv = esp_tmp_iv(aead, tmp, seqhilen);
@@ -465,6 +465,10 @@ static u32 esp4_get_mtu(struct xfrm_state *x, int mtu)
 	case XFRM_MODE_TRANSPORT:
 	case XFRM_MODE_BEET:
 		net_adj = sizeof(struct iphdr);
+		break;
+	case XFRM_MODE_TUNNEL:
+		net_adj = 0;
+		break;
 		break;
 	case XFRM_MODE_TUNNEL:
 		net_adj = 0;

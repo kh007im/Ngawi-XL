@@ -829,6 +829,7 @@ struct zs_pool *zs_create_pool(gfp_t flags)
 	}
 
 	pool->flags = flags;
+	pool->name = name;
 
 	return pool;
 }

@@ -279,6 +279,15 @@ static int __init_memblock memblock_double_array(struct memblock_type *type,
 	/* Reserve the new array if that comes from the memblock.
 	 * Otherwise, we needn't do it
 	 */
+	if (*in_slab)
+		kfree(old_array);
+	else if (old_array != memblock_memory_init_regions &&
+		 old_array != memblock_reserved_init_regions)
+		memblock_free(__pa(old_array), old_alloc_size);
+
+	/* Reserve the new array if that comes from the memblock.
+	 * Otherwise, we needn't do it
+	 */
 	if (!use_slab)
 		BUG_ON(memblock_reserve(addr, new_alloc_size));
 
@@ -914,6 +923,30 @@ int __init_memblock memblock_is_region_reserved(phys_addr_t base, phys_addr_t si
 	return memblock_overlaps_region(&memblock.reserved, base, size) >= 0;
 }
 
+void __init_memblock memblock_trim_memory(phys_addr_t align)
+{
+	int i;
+	phys_addr_t start, end, orig_start, orig_end;
+	struct memblock_type *mem = &memblock.memory;
+
+	for (i = 0; i < mem->cnt; i++) {
+		orig_start = mem->regions[i].base;
+		orig_end = mem->regions[i].base + mem->regions[i].size;
+		start = round_up(orig_start, align);
+		end = round_down(orig_end, align);
+
+		if (start == orig_start && end == orig_end)
+			continue;
+
+		if (start < end) {
+			mem->regions[i].base = start;
+			mem->regions[i].size = end - start;
+		} else {
+			memblock_remove_region(mem, i);
+			i--;
+		}
+	}
+}
 
 void __init_memblock memblock_set_current_limit(phys_addr_t limit)
 {

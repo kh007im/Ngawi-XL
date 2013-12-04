@@ -868,6 +868,8 @@ static int eth_stop(struct net_device *net)
 		out = link->out_ep->desc;
 		usb_ep_disable(link->in_ep);
 		usb_ep_disable(link->out_ep);
+		in = link->in_ep->desc;
+		out = link->out_ep->desc;
 		if (netif_carrier_ok(net)) {
 			if (config_ep_by_speed(dev->gadget, &link->func,
 					       link->in_ep) ||

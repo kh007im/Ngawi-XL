@@ -1231,6 +1231,7 @@ static int powernowk8_target(struct cpufreq_policy *pol,
 		return powernowk8_target_fn(&pta);
 	else
 		return work_on_cpu(pol->cpu, powernowk8_target_fn, &pta);
+	return work_on_cpu(pol->cpu, powernowk8_target_fn, &pta);
 }
 
 /* Driver entry point to verify the policy and range of frequencies */

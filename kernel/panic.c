@@ -129,6 +129,14 @@ void panic(const char *fmt, ...)
 	local_irq_disable();
 
 	/*
+	 * Disable local interrupts. This will prevent panic_smp_self_stop
+	 * from deadlocking the first cpu that invokes the panic, since
+	 * there is nothing to prevent an interrupt handler (that runs
+	 * after the panic_lock is acquired) from invoking panic again.
+	 */
+	local_irq_disable();
+
+	/*
 	 * It's possible to come here directly from a panic-assertion and
 	 * not have preempt disabled. Some functions called from here want
 	 * preempt to be disabled. No point enabling it later though...
@@ -204,6 +212,13 @@ void panic(const char *fmt, ...)
 	 * Do we want to call this before we try to display a message?
 	 */
 	crash_kexec(NULL);
+
+	/* print last_kmsg even after console suspend */
+	if (is_console_suspended())
+		resume_console();
+
+	if (is_console_locked())
+		console_unlock();
 
 	/*
 	 * Note smp_send_stop is the usual smp shutdown function, which

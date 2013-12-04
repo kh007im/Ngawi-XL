@@ -1533,8 +1533,12 @@ static int radeon_atom_pick_pll(struct drm_crtc *crtc)
 				 * crtc virtual pixel clock.
 				 */
 				if (ENCODER_MODE_IS_DP(atombios_get_encoder_mode(test_encoder))) {
-					if (ASIC_IS_DCE5(rdev) || rdev->clock.dp_extclk)
+					if (rdev->clock.dp_extclk)
 						return ATOM_PPLL_INVALID;
+					else if (ASIC_IS_DCE6(rdev))
+						return ATOM_PPLL0;
+					else if (ASIC_IS_DCE5(rdev))
+						return ATOM_DCPLL;
 				}
 			}
 		}
@@ -1666,6 +1670,20 @@ static void atombios_crtc_disable(struct drm_crtc *crtc)
 	int i;
 
 	atombios_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
+	if (ASIC_IS_DCE6(rdev))
+		atombios_powergate_crtc(crtc, ATOM_ENABLE);
+
+	for (i = 0; i < rdev->num_crtc; i++) {
+		if (rdev->mode_info.crtcs[i] &&
+		    rdev->mode_info.crtcs[i]->enabled &&
+		    i != radeon_crtc->crtc_id &&
+		    radeon_crtc->pll_id == rdev->mode_info.crtcs[i]->pll_id) {
+			/* one other crtc is using this pll don't turn
+			 * off the pll
+			 */
+			goto done;
+		}
+	}
 
 	for (i = 0; i < rdev->num_crtc; i++) {
 		if (rdev->mode_info.crtcs[i] &&
