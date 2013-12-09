@@ -570,7 +570,7 @@ static int ping_sendmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		err = PTR_ERR(rt);
 		rt = NULL;
 		if (err == -ENETUNREACH)
-			IP_INC_STATS_BH(net, IPSTATS_MIB_OUTNOROUTES);
+			IP_INC_STATS(net, IPSTATS_MIB_OUTNOROUTES);
 		goto out;
 	}
 
@@ -627,6 +627,7 @@ static int ping_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 {
 	struct inet_sock *isk = inet_sk(sk);
 	struct sockaddr_in *sin = (struct sockaddr_in *)msg->msg_name;
+	int family = sk->sk_family;
 	struct sk_buff *skb;
 	int copied, err;
 
@@ -641,6 +642,15 @@ static int ping_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 
 	if (flags & MSG_ERRQUEUE)
 		return ip_recv_error(sk, msg, len);
+	if (flags & MSG_ERRQUEUE) {
+		if (family == AF_INET) {
+			return ip_recv_error(sk, msg, len, addr_len);
+#if IS_ENABLED(CONFIG_IPV6)
+		} else if (family == AF_INET6) {
+			return pingv6_ops.ipv6_recv_error(sk, msg, len);
+#endif
+		}
+	}
 
 	skb = skb_recv_datagram(sk, flags, noblock, &err);
 	if (!skb)
@@ -661,10 +671,40 @@ static int ping_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 
 	/* Copy the address. */
 	if (sin) {
+	/* Copy the address and add cmsg data. */
+	if (family == AF_INET) {
+		struct sockaddr_in *sin = (struct sockaddr_in *)msg->msg_name;
 		sin->sin_family = AF_INET;
 		sin->sin_port = 0 /* skb->h.uh->source */;
 		sin->sin_addr.s_addr = ip_hdr(skb)->saddr;
 		memset(sin->sin_zero, 0, sizeof(sin->sin_zero));
+		*addr_len = sizeof(*sin);
+
+		if (isk->cmsg_flags)
+			ip_cmsg_recv(msg, skb);
+
+#if IS_ENABLED(CONFIG_IPV6)
+	} else if (family == AF_INET6) {
+		struct ipv6_pinfo *np = inet6_sk(sk);
+		struct ipv6hdr *ip6 = ipv6_hdr(skb);
+		struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *) msg->msg_name;
+		sin6->sin6_family = AF_INET6;
+		sin6->sin6_port = 0;
+		sin6->sin6_addr = ip6->saddr;
+
+		sin6->sin6_flowinfo = 0;
+		if (np->sndflow)
+			sin6->sin6_flowinfo =
+				*(__be32 *)ip6 & IPV6_FLOWINFO_MASK;
+
+		sin6->sin6_scope_id = ipv6_iface_scope_id(&sin6->sin6_addr,
+							  IP6CB(skb)->iif);
+		*addr_len = sizeof(*sin6);
+		if (inet6_sk(sk)->rxopt.all)
+			pingv6_ops.datagram_recv_ctl(sk, msg, skb);
+#endif
+	} else {
+		BUG();
 	}
 	if (isk->cmsg_flags)
 		ip_cmsg_recv(msg, skb);
