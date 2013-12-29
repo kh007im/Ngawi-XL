@@ -1,7 +1,7 @@
 #!/bin/bash
 TOOLCHAIN="/home/MattKhojim/android/toolchain/linaro-4.7-2013.10/bin/arm-eabi"
 MODULES_DIR="../modules"
-KERNEL_DIR="/home/MattKhojim/android/ngawi-xl"
+KERNEL_DIR="/home/MattKhojim/android/ngawi-xl-k"
 make ARCH=arm CROSS_COMPILE=$TOOLCHAIN- sa77_defconfig
 make ARCH=arm CROSS_COMPILE=$TOOLCHAIN- -j4
 if [ -a $KERNEL_DIR/arch/arm/boot/zImage ];
