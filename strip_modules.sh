@@ -1,7 +1,7 @@
 #!/bin/bash
 TOOLCHAIN="/home/MattKhojim/android/toolchain/linaro-4.7-2013.10/bin/arm-eabi"
 MODULES_DIR="../modules"
-KERNEL_DIR="/home/MattKhojim/android/ngawi-xl"
+KERNEL_DIR="/home/MattKhojim/android/ngawi-xl-k"
 echo "Copying modules"
 find . -name '*.ko' -exec cp {} $MODULES_DIR/ \;
 cd $MODULES_DIR
