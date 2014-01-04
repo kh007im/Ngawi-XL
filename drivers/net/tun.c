@@ -1263,7 +1263,10 @@ static long __tun_chr_ioctl(struct file *file, unsigned int cmd,
 		return -EPERM;
 	}
 #endif
+<<<<<<< HEAD
+=======
 
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 	if (cmd == TUNSETIFF || _IOC_TYPE(cmd) == 0x89) {
 		if (copy_from_user(&ifr, argp, ifreq_len))
 			return -EFAULT;

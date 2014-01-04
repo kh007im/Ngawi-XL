@@ -1605,9 +1605,12 @@ static const struct usb_device_id acm_ids[] = {
 	{ USB_DEVICE(0x0572, 0x1340), /* Conexant CX93010-2x UCMxx */
 	.driver_info = NO_UNION_NORMAL,
 	},
+<<<<<<< HEAD
+=======
 	{ USB_DEVICE(0x05f9, 0x4002), /* PSC Scanning, Magellan 800i */
 	.driver_info = NO_UNION_NORMAL,
 	},
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 	{ USB_DEVICE(0x1bbb, 0x0003), /* Alcatel OT-I650 */
 	.driver_info = NO_UNION_NORMAL, /* reports zero length descriptor */
 	},

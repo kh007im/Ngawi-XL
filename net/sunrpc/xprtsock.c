@@ -1544,7 +1544,10 @@ static void xs_tcp_state_change(struct sock *sk)
 	case TCP_CLOSE_WAIT:
 		/* The server initiated a shutdown of the socket */
 		xprt->connect_cookie++;
+<<<<<<< HEAD
+=======
 		clear_bit(XPRT_CONNECTED, &xprt->state);
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 		xs_tcp_force_close(xprt);
 	case TCP_CLOSING:
 		/*

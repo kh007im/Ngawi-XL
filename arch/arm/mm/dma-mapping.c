@@ -877,9 +877,11 @@ static void dma_cache_maint_page(struct page *page, unsigned long offset,
 		if (PageHighMem(page)) {
 			if (len + offset > PAGE_SIZE)
 				len = PAGE_SIZE - offset;
+<<<<<<< HEAD
 			}
 
 			if (cache_is_vipt_nonaliasing()) {
+=======
 			vaddr = kmap_high_get(page);
 			if (vaddr) {
 				vaddr += offset;
@@ -887,6 +889,7 @@ static void dma_cache_maint_page(struct page *page, unsigned long offset,
 				kunmap_high(page);
 			} else if (cache_is_vipt()) {
 				/* unmapped pages might still be cached */
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 				vaddr = kmap_atomic(page);
 				op(vaddr + offset, len, dir);
 				kunmap_atomic(vaddr);

@@ -393,9 +393,15 @@ static void migrate_to_reboot_cpu(void)
 void kernel_restart(char *cmd)
 {
 	kernel_restart_prepare(cmd);
+<<<<<<< HEAD
 	disable_nonboot_cpus();
+<<<<<<< HEAD
+=======
+=======
 	migrate_to_reboot_cpu();
+>>>>>>> 14ace69... Squashed update of kernel from 3.4.49 to 3.4.50
 	syscore_shutdown();
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 	if (!cmd)
 		printk(KERN_EMERG "Restarting system.\n");
 	else

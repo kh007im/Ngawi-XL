@@ -545,7 +545,14 @@ static const struct dmi_system_id __devinitconst ehci_dmi_nohandoff_table[] = {
 		/*  Pegatron Lucid (Ordissimo AIRIS) */
 		.matches = {
 			DMI_MATCH(DMI_BOARD_NAME, "M11JB"),
-			DMI_MATCH(DMI_BIOS_VERSION, "Lucid-GE-133"),
+			DMI_MATCH(DMI_BIOS_VERSION, "Lucid-"),
+		},
+	},
+	{
+		/*  Pegatron Lucid (Ordissimo) */
+		.matches = {
+			DMI_MATCH(DMI_BOARD_NAME, "Ordissimo"),
+			DMI_MATCH(DMI_BIOS_VERSION, "Lucid-"),
 		},
 	},
 	{ }
@@ -716,6 +723,10 @@ static int handshake(void __iomem *ptr, u32 mask, u32 done,
 }
 
 #define PCI_DEVICE_ID_INTEL_LYNX_POINT_XHCI	0x8C31
+<<<<<<< HEAD
+=======
+#define PCI_DEVICE_ID_INTEL_LYNX_POINT_LP_XHCI	0x9C31
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 
 bool usb_is_intel_ppt_switchable_xhci(struct pci_dev *pdev)
 {
@@ -729,7 +740,12 @@ bool usb_is_intel_lpt_switchable_xhci(struct pci_dev *pdev)
 {
 	return pdev->class == PCI_CLASS_SERIAL_USB_XHCI &&
 		pdev->vendor == PCI_VENDOR_ID_INTEL &&
+<<<<<<< HEAD
 		pdev->device == PCI_DEVICE_ID_INTEL_LYNX_POINT_XHCI;
+=======
+		(pdev->device == PCI_DEVICE_ID_INTEL_LYNX_POINT_XHCI ||
+		 pdev->device == PCI_DEVICE_ID_INTEL_LYNX_POINT_LP_XHCI);
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 }
 
 bool usb_is_intel_switchable_xhci(struct pci_dev *pdev)
@@ -771,6 +787,10 @@ void usb_enable_xhci_ports(struct pci_dev *xhci_pdev)
 				"defaulting to EHCI.\n");
 		dev_warn(&xhci_pdev->dev,
 				"USB 3.0 devices will work at USB 2.0 speeds.\n");
+<<<<<<< HEAD
+=======
+		usb_disable_xhci_ports(xhci_pdev);
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 		return;
 	}
 

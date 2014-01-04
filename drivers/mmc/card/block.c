@@ -1185,9 +1185,11 @@ static int mmc_blk_err_check(struct mmc_card *card,
 	 */
 	if (!mmc_host_is_spi(card->host) && rq_data_dir(req) != READ) {
 		u32 status;
+<<<<<<< HEAD
 		unsigned long timeout;
 
 		timeout = jiffies + msecs_to_jiffies(MMC_BLK_TIMEOUT_MS);
+=======
 
 		/* Check stop command response */
 		if (brq->stop.resp[0] & R1_ERROR) {
@@ -1197,6 +1199,7 @@ static int mmc_blk_err_check(struct mmc_card *card,
 			gen_err = 1;
 		}
 
+>>>>>>> 557f569... Squashed update of kernel from 3.4.72 to 3.4.73
 		do {
 			int err = get_card_status(card, &status, 5);
 			if (err) {
@@ -1205,6 +1208,7 @@ static int mmc_blk_err_check(struct mmc_card *card,
 				return MMC_BLK_CMD_ERR;
 			}
 
+<<<<<<< HEAD
 			/* Timeout if the device never becomes ready for data
 			 * and never leaves the program state.
 			 */
@@ -1215,6 +1219,7 @@ static int mmc_blk_err_check(struct mmc_card *card,
 
 				return MMC_BLK_CMD_ERR;
 			}
+=======
 			if (status & R1_ERROR) {
 				pr_err("%s: %s: general error sending status command, card status %#x\n",
 				       req->rq_disk->disk_name, __func__,
@@ -1222,6 +1227,7 @@ static int mmc_blk_err_check(struct mmc_card *card,
 				gen_err = 1;
 			}
 
+>>>>>>> 557f569... Squashed update of kernel from 3.4.72 to 3.4.73
 			/*
 			 * Some cards mishandle the status bits,
 			 * so make sure to check both the busy

@@ -269,6 +269,7 @@ static int __init_memblock memblock_double_array(struct memblock_type *type,
 
 	/* Free old array. We needn't free it if the array is the
 	 * static one
+<<<<<<< HEAD
 	 */
 	if (*in_slab)
 		kfree(old_array);
@@ -279,7 +280,8 @@ static int __init_memblock memblock_double_array(struct memblock_type *type,
 	/* Reserve the new array if that comes from the memblock.
 	 * Otherwise, we needn't do it
 	 */
-
+=======
+	 */
 	if (*in_slab)
 		kfree(old_array);
 	else if (old_array != memblock_memory_init_regions &&
@@ -289,7 +291,7 @@ static int __init_memblock memblock_double_array(struct memblock_type *type,
 	/* Reserve the new array if that comes from the memblock.
 	 * Otherwise, we needn't do it
 	 */
-
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 	if (!use_slab)
 		BUG_ON(memblock_reserve(addr, new_alloc_size));
 

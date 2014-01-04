@@ -1643,8 +1643,11 @@ static inline int deliver_skb(struct sk_buff *skb,
 
 static inline bool skb_loop_sk(struct packet_type *ptype, struct sk_buff *skb)
 {
+<<<<<<< HEAD
 	if (ptype->af_packet_priv == NULL)
+=======
 	if (!ptype->af_packet_priv || !skb->sk)
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 		return false;
 
 	if (ptype->id_match)

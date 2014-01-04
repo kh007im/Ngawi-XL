@@ -1654,8 +1654,10 @@ static void try_to_wake_up_local(struct task_struct *p)
 {
 	struct rq *rq = task_rq(p);
 
-	BUG_ON(rq != this_rq());
-	BUG_ON(p == current);
+	if (WARN_ON_ONCE(rq != this_rq()) ||
+	    WARN_ON_ONCE(p == current))
+		return;
+
 	lockdep_assert_held(&rq->lock);
 
 	if (!raw_spin_trylock(&p->pi_lock)) {
@@ -1689,7 +1691,8 @@ out:
  */
 int wake_up_process(struct task_struct *p)
 {
-	return try_to_wake_up(p, TASK_ALL, 0);
+	WARN_ON(task_is_stopped_or_traced(p));
+	return try_to_wake_up(p, TASK_NORMAL, 0);
 }
 EXPORT_SYMBOL(wake_up_process);
 
@@ -2330,6 +2333,7 @@ static inline int calc_load_write_idx(void)
 	 */
 	if (!time_before(jiffies, calc_load_update))
 		idx++;
+<<<<<<< HEAD
 
 	return idx & 1;
 }
@@ -2339,6 +2343,17 @@ static inline int calc_load_read_idx(void)
 	return calc_load_idx & 1;
 }
 
+=======
+
+	return idx & 1;
+}
+
+static inline int calc_load_read_idx(void)
+{
+	return calc_load_idx & 1;
+}
+
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 void calc_load_enter_idle(void)
 {
 	struct rq *this_rq = this_rq();

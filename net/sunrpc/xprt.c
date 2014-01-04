@@ -998,7 +998,10 @@ void xprt_alloc_slot(struct rpc_xprt *xprt, struct rpc_task *task)
 	default:
 		task->tk_status = -EAGAIN;
 	}
+<<<<<<< HEAD
+=======
 	spin_unlock(&xprt->reserve_lock);
+>>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 	return;
 out_init_req:
 	task->tk_status = 0;
