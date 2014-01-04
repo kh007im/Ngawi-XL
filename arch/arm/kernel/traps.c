@@ -462,11 +462,7 @@ asmlinkage void __exception do_undefinstr(struct pt_regs *regs)
 
 	if (call_undef_hook(regs, instr) == 0)
 		return;
-<<<<<<< HEAD
 	trace_undef_instr(regs, (void *)pc);
-=======
-
->>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 die_sig:
 #ifdef CONFIG_DEBUG_USER
 	if (user_debug & UDBG_UNDEFINED) {

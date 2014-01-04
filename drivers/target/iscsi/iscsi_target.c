@@ -2354,7 +2354,7 @@ static void iscsit_build_conn_drop_async_message(struct iscsi_conn *conn)
 	if (!conn_p)
 		return;
 
-	cmd = iscsit_allocate_cmd(conn_p, GFP_ATOMIC);
+	cmd = iscsit_allocate_cmd(conn_p, GFP_KERNEL);
 	if (!cmd) {
 		iscsit_dec_conn_usage_count(conn_p);
 		return;
@@ -3509,9 +3509,7 @@ restart:
 		 */
 		iscsit_thread_check_cpumask(conn, current, 1);
 
-		wait_event_interruptible(conn->queues_wq,
-					 !iscsit_conn_all_queues_empty(conn) ||
-					 ts->status == ISCSI_THREAD_SET_RESET);
+		schedule_timeout_interruptible(MAX_SCHEDULE_TIMEOUT);
 
 		if ((ts->status == ISCSI_THREAD_SET_RESET) ||
 		     signal_pending(current))

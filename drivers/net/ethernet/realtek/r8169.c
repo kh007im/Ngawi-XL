@@ -73,7 +73,7 @@
 static const int multicast_filter_limit = 32;
 
 #define MAX_READ_REQUEST_SHIFT	12
-#define TX_DMA_BURST	7	/* Maximum PCI burst, '7' is unlimited */
+#define TX_DMA_BURST	6	/* Maximum PCI burst, '6' is 1024 */
 #define SafeMtu		0x1c20	/* ... actually life sucks beyond ~7k */
 #define InterFrameGap	0x03	/* 3 means InterFrameGap = the shortest one */
 
@@ -3483,37 +3483,11 @@ static void __devinit rtl_init_mdio_ops(struct rtl8169_private *tp)
 	}
 }
 
-static void rtl_speed_down(struct rtl8169_private *tp)
-{
-	u32 adv;
-	int lpa;
-
-	rtl_writephy(tp, 0x1f, 0x0000);
-	lpa = rtl_readphy(tp, MII_LPA);
-
-	if (lpa & (LPA_10HALF | LPA_10FULL))
-		adv = ADVERTISED_10baseT_Half | ADVERTISED_10baseT_Full;
-	else if (lpa & (LPA_100HALF | LPA_100FULL))
-		adv = ADVERTISED_10baseT_Half | ADVERTISED_10baseT_Full |
-		      ADVERTISED_100baseT_Half | ADVERTISED_100baseT_Full;
-	else
-		adv = ADVERTISED_10baseT_Half | ADVERTISED_10baseT_Full |
-		      ADVERTISED_100baseT_Half | ADVERTISED_100baseT_Full |
-		      (tp->mii.supports_gmii ?
-		       ADVERTISED_1000baseT_Half |
-		       ADVERTISED_1000baseT_Full : 0);
-
-	rtl8169_set_speed(tp->dev, AUTONEG_ENABLE, SPEED_1000, DUPLEX_FULL,
-			  adv);
-}
-
 static void rtl_wol_suspend_quirk(struct rtl8169_private *tp)
 {
 	void __iomem *ioaddr = tp->mmio_addr;
 
 	switch (tp->mac_version) {
-	case RTL_GIGA_MAC_VER_25:
-	case RTL_GIGA_MAC_VER_26:
 	case RTL_GIGA_MAC_VER_29:
 	case RTL_GIGA_MAC_VER_30:
 	case RTL_GIGA_MAC_VER_32:
@@ -3532,7 +3506,9 @@ static bool rtl_wol_pll_power_down(struct rtl8169_private *tp)
 	if (!(__rtl8169_get_wol(tp) & WAKE_ANY))
 		return false;
 
-	rtl_speed_down(tp);
+	rtl_writephy(tp, 0x1f, 0x0000);
+	rtl_writephy(tp, MII_BMCR, 0x0000);
+
 	rtl_wol_suspend_quirk(tp);
 
 	return true;
@@ -4152,9 +4128,6 @@ static void rtl_set_rx_mode(struct net_device *dev)
 		mc_filter[0] = swab32(mc_filter[1]);
 		mc_filter[1] = swab32(data);
 	}
-
-	if (tp->mac_version == RTL_GIGA_MAC_VER_35)
-		mc_filter[1] = mc_filter[0] = 0xffffffff;
 
 	RTL_W32(MAR0 + 4, mc_filter[1]);
 	RTL_W32(MAR0 + 0, mc_filter[0]);
@@ -5472,6 +5445,13 @@ process_pkt:
 			tp->rx_stats.bytes += pkt_size;
 			u64_stats_update_end(&tp->rx_stats.syncp);
 		}
+
+		/* Work around for AMD plateform. */
+		if ((desc->opts2 & cpu_to_le32(0xfffe000)) &&
+		    (tp->mac_version == RTL_GIGA_MAC_VER_05)) {
+			desc->opts2 = 0;
+			cur_rx++;
+		}
 	}
 
 	count = cur_rx - tp->cur_rx;
@@ -5531,7 +5511,11 @@ static void rtl_slow_event_work(struct rtl8169_private *tp)
 	if (status & LinkChg)
 		__rtl8169_check_link_status(dev, tp, tp->mmio_addr, true);
 
-	rtl_irq_enable_all(tp);
+	napi_disable(&tp->napi);
+	rtl_irq_disable(tp);
+
+	napi_enable(&tp->napi);
+	napi_schedule(&tp->napi);
 }
 
 static void rtl_task(struct work_struct *work)
