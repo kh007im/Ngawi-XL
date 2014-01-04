@@ -1314,13 +1314,13 @@ void usb_hnp_polling_work(struct work_struct *work)
 	if (!(*status & (1 << HOST_REQUEST_FLAG)))
 		goto reschedule;
 
-//start_hnp:
-//	do_unbind_rebind(udev, DO_UNBIND);
-//	udev->do_remote_wakeup = device_may_wakeup(&udev->dev);
-//	ret = usb_suspend_both(udev, PMSG_USER_SUSPEND);
-//	if (ret)
-//		dev_info(&udev->dev, "suspend failed\n");
-//	goto out;
+start_hnp:
+	do_unbind_rebind(udev, DO_UNBIND);
+	udev->do_remote_wakeup = device_may_wakeup(&udev->dev);
+	ret = usb_suspend_both(udev, PMSG_USER_SUSPEND);
+	if (ret)
+		dev_info(&udev->dev, "suspend failed\n");
+	goto out;
 
 reschedule:
 	schedule_delayed_work(&bus->hnp_polling,
