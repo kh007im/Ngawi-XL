@@ -38,7 +38,6 @@ void __mmu_notifier_release(struct mm_struct *mm)
 {
 	struct mmu_notifier *mn;
 <<<<<<< HEAD
-<<<<<<< HEAD
 	struct hlist_node *n;
 
 	/*
@@ -58,41 +57,27 @@ void __mmu_notifier_release(struct mm_struct *mm)
 			mn->ops->release(mn, mm);
 	rcu_read_unlock();
 =======
-=======
-	struct hlist_node *node;
->>>>>>> e21a962... Squashed update of kernel from 3.4.47 to 3.4.48
 	int id;
 >>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 
 	/*
-	 * SRCU here will block mmu_notifier_unregister until
-	 * ->release returns.
+	 * srcu_read_lock() here will block synchronize_srcu() in
+	 * mmu_notifier_unregister() until all registered
+	 * ->release() callouts this function makes have
+	 * returned.
 	 */
 	id = srcu_read_lock(&srcu);
-	hlist_for_each_entry_rcu(mn, node, &mm->mmu_notifier_mm->list, hlist)
-		/*
-		 * If ->release runs before mmu_notifier_unregister it must be
-		 * handled, as it's the only way for the driver to flush all
-		 * existing sptes and stop the driver from establishing any more
-		 * sptes before all the pages in the mm are freed.
-		 */
-		if (mn->ops->release)
-			mn->ops->release(mn, mm);
-	srcu_read_unlock(&srcu, id);
-
 	spin_lock(&mm->mmu_notifier_mm->lock);
 	while (unlikely(!hlist_empty(&mm->mmu_notifier_mm->list))) {
 		mn = hlist_entry(mm->mmu_notifier_mm->list.first,
 				 struct mmu_notifier,
 				 hlist);
+
 		/*
-		 * We arrived before mmu_notifier_unregister so
-		 * mmu_notifier_unregister will do nothing other than to wait
-		 * for ->release to finish and for mmu_notifier_unregister to
-		 * return.
+		 * Unlink.  This will prevent mmu_notifier_unregister()
+		 * from also making the ->release() callout.
 		 */
 		hlist_del_init_rcu(&mn->hlist);
-<<<<<<< HEAD
 <<<<<<< HEAD
 =======
 		spin_unlock(&mm->mmu_notifier_mm->lock);
@@ -105,19 +90,22 @@ void __mmu_notifier_release(struct mm_struct *mm)
 
 		spin_lock(&mm->mmu_notifier_mm->lock);
 >>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
-=======
->>>>>>> e21a962... Squashed update of kernel from 3.4.47 to 3.4.48
 	}
 	spin_unlock(&mm->mmu_notifier_mm->lock);
 
 	/*
-	 * synchronize_srcu here prevents mmu_notifier_release from returning to
-	 * exit_mmap (which would proceed with freeing all pages in the mm)
-	 * until the ->release method returns, if it was invoked by
-	 * mmu_notifier_unregister.
-	 *
-	 * The mmu_notifier_mm can't go away from under us because one mm_count
-	 * is held by exit_mmap.
+	 * All callouts to ->release() which we have done are complete.
+	 * Allow synchronize_srcu() in mmu_notifier_unregister() to complete
+	 */
+	srcu_read_unlock(&srcu, id);
+
+	/*
+	 * mmu_notifier_unregister() may have unlinked a notifier and may
+	 * still be calling out to it.	Additionally, other notifiers
+	 * may have been active via vmtruncate() et. al. Block here
+	 * to ensure that all notifier callouts for this mm have been
+	 * completed and the sptes are really cleaned up before returning
+	 * to exit_mmap().
 	 */
 	synchronize_srcu(&srcu);
 }
@@ -340,25 +328,13 @@ void mmu_notifier_unregister(struct mmu_notifier *mn, struct mm_struct *mm)
 
 	if (!hlist_unhashed(&mn->hlist)) {
 <<<<<<< HEAD
-<<<<<<< HEAD
 =======
 		int id;
 
 >>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
-=======
 		/*
-		 * SRCU here will force exit_mmap to wait for ->release to
-		 * finish before freeing the pages.
+		 * Ensure we synchronize up with __mmu_notifier_release().
 		 */
-		int id;
-
-		id = srcu_read_lock(&srcu);
->>>>>>> e21a962... Squashed update of kernel from 3.4.47 to 3.4.48
-		/*
-		 * exit_mmap will block in mmu_notifier_release to guarantee
-		 * that ->release is called before freeing the pages.
-		 */
-<<<<<<< HEAD
 <<<<<<< HEAD
 		rcu_read_lock();
 
@@ -379,30 +355,21 @@ void mmu_notifier_unregister(struct mmu_notifier *mn, struct mm_struct *mm)
 		hlist_del_rcu(&mn->hlist);
 		spin_unlock(&mm->mmu_notifier_mm->lock);
 
-=======
->>>>>>> e21a962... Squashed update of kernel from 3.4.47 to 3.4.48
 		if (mn->ops->release)
 			mn->ops->release(mn, mm);
-		srcu_read_unlock(&srcu, id);
 
-		spin_lock(&mm->mmu_notifier_mm->lock);
 		/*
-		 * Can not use list_del_rcu() since __mmu_notifier_release
-		 * can delete it before we hold the lock.
+		 * Allow __mmu_notifier_release() to complete.
 		 */
-<<<<<<< HEAD
 		srcu_read_unlock(&srcu, id);
 	} else
 >>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
-=======
-		hlist_del_init_rcu(&mn->hlist);
->>>>>>> e21a962... Squashed update of kernel from 3.4.47 to 3.4.48
 		spin_unlock(&mm->mmu_notifier_mm->lock);
 	}
 
 	/*
-	 * Wait for any running method to finish, of course including
-	 * ->release if it was run by mmu_notifier_relase instead of us.
+	 * Wait for any running method to finish, including ->release() if it
+	 * was run by __mmu_notifier_release() instead of us.
 	 */
 	synchronize_srcu(&srcu);
 
