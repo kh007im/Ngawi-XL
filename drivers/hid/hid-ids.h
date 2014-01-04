@@ -520,12 +520,9 @@
 #define USB_VENDOR_ID_MADCATZ		0x0738
 #define USB_DEVICE_ID_MADCATZ_BEATPAD	0x4540
 
-<<<<<<< HEAD
-=======
 #define USB_VENDOR_ID_MASTERKIT			0x16c0
 #define USB_DEVICE_ID_MASTERKIT_MA901RADIO	0x05df
 
->>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 #define USB_VENDOR_ID_MCC		0x09db
 #define USB_DEVICE_ID_MCC_PMD1024LS	0x0076
 #define USB_DEVICE_ID_MCC_PMD1208LS	0x007a

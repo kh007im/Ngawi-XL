@@ -167,11 +167,7 @@ vfp_hw_state_valid:
 					@ else it's one 32-bit instruction, so
 					@ always subtract 4 from the following
 					@ instruction address.
-<<<<<<< HEAD
-#ifdef CONFIG_PREEMPT
-=======
 #ifdef CONFIG_PREEMPT_COUNT
->>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 	get_thread_info	r10
 	ldr	r4, [r10, #TI_PREEMPT]	@ get preempt count
 	sub	r11, r4, #1		@ decrement it

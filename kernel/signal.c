@@ -482,11 +482,8 @@ flush_signal_handlers(struct task_struct *t, int force_default)
 		if (force_default || ka->sa.sa_handler != SIG_IGN)
 			ka->sa.sa_handler = SIG_DFL;
 		ka->sa.sa_flags = 0;
-<<<<<<< HEAD
-#ifdef SA_RESTORER
-=======
+
 #ifdef __ARCH_HAS_SA_RESTORER
->>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 		ka->sa.sa_restorer = NULL;
 #endif
 		sigemptyset(&ka->sa.sa_mask);
