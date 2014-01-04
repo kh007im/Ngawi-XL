@@ -472,10 +472,6 @@ static void option_instat_callback(struct urb *urb);
 #define CHANGHONG_PRODUCT_CH690			0x7001
 >>>>>>> a871f58... Squashed update of kernel from 3.4.0 to 3.4.42
 
-/* Inovia */
-#define INOVIA_VENDOR_ID			0x20a6
-#define INOVIA_SEW858				0x1105
-
 /* some devices interfaces need special handling due to a number of reasons */
 enum option_blacklist_reason {
 		OPTION_BLACKLIST_NONE = 0,
@@ -1318,9 +1314,7 @@ static const struct usb_device_id option_ids[] = {
 
 	{ USB_DEVICE(OLIVETTI_VENDOR_ID, OLIVETTI_PRODUCT_OLICARD100) },
 	{ USB_DEVICE(OLIVETTI_VENDOR_ID, OLIVETTI_PRODUCT_OLICARD145) },
-	{ USB_DEVICE(OLIVETTI_VENDOR_ID, OLIVETTI_PRODUCT_OLICARD200),
-		.driver_info = (kernel_ulong_t)&net_intf6_blacklist
-	},
+	{ USB_DEVICE(OLIVETTI_VENDOR_ID, OLIVETTI_PRODUCT_OLICARD200) },
 	{ USB_DEVICE(CELOT_VENDOR_ID, CELOT_PRODUCT_CT680M) }, /* CT-650 CDMA 450 1xEVDO modem */
 	{ USB_DEVICE_AND_INTERFACE_INFO(SAMSUNG_VENDOR_ID, SAMSUNG_PRODUCT_GT_B3730, USB_CLASS_CDC_DATA, 0x00, 0x00) }, /* Samsung GT-B3730 LTE USB modem.*/
 	{ USB_DEVICE(YUGA_VENDOR_ID, YUGA_PRODUCT_CEM600) },
@@ -1417,11 +1411,7 @@ static const struct usb_device_id option_ids[] = {
 =======
 	{ USB_DEVICE_AND_INTERFACE_INFO(0x07d1, 0x3e01, 0xff, 0xff, 0xff) }, /* D-Link DWM-152/C1 */
 	{ USB_DEVICE_AND_INTERFACE_INFO(0x07d1, 0x3e02, 0xff, 0xff, 0xff) }, /* D-Link DWM-156/C1 */
-<<<<<<< HEAD
 >>>>>>> 85e7c7a... Squashed update of kernel from 3.4.54 to 3.4.55
-=======
-	{ USB_DEVICE(INOVIA_VENDOR_ID, INOVIA_SEW858) },
->>>>>>> f01a556... Squashed update of kernel from 3.4.67 to 3.4.68
 	{ } /* Terminating entry */
 };
 MODULE_DEVICE_TABLE(usb, option_ids);
