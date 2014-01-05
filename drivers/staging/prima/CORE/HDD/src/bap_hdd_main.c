@@ -1,24 +1,4 @@
 /*
- * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
- *
- * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
- *
- *
- * Permission to use, copy, modify, and/or distribute this software for
- * any purpose with or without fee is hereby granted, provided that the
- * above copyright notice and this permission notice appear in all
- * copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
- * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
- * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
- * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
- * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
- * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- */
-/*
  * Copyright (c) 2012, The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
@@ -95,7 +75,9 @@
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>
 
+#ifdef WLAN_SOFTAP_FEATURE
 #include <wlan_hdd_misc.h>
+#endif
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -199,13 +181,15 @@ if I exceed that.  ( Think 8-bit CPUs.  And the limitations of an 8-bit length
 #define DBGLOG printf
 //#define DUMPLOG
 #if defined DUMPLOG
-#define DUMPLOG(n, name1, name2, aStr, size) do {                       \
-        int i;                                                          \
-        DBGLOG("%d. %s: %s = \n", n, name1, name2);                     \
-        for (i = 0; i < size; i++)                                      \
-            DBGLOG("%2.2x%s", ((unsigned char *)aStr)[i], i % 16 == 15 ? "\n" : " "); \
-        DBGLOG("\n");                                                   \
-    } while (0)
+#define DUMPLOG(n, name1, name2, aStr, size) \
+    if (1) \
+{\
+    int i;\
+    DBGLOG("%d. %s: %s = \n", n, name1, name2); \
+    for (i = 0; i < size; i++) \
+        DBGLOG("%2.2x%s", ((unsigned char *)aStr)[i], i % 16 == 15 ? "\n" : " "); \
+    DBGLOG("\n"); \
+}
 #else
 #define DUMPLOG(n, name1, name2, aStr, size)
 #endif
@@ -432,13 +416,13 @@ static VOS_STATUS WLANBAP_STAFetchPktCB
     WLANTL_MetaInfoType TlMetaInfo;
     pctx = &BslClientCtx[0];
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "WLANBAP_STAFetchPktCB" );
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "WLANBAP_STAFetchPktCB\n" );
 
     // sanity checking
     if( pHddHdl == NULL || vosDataBuff == NULL ||
             tlMetaInfo == NULL || ucAC >= WLANTL_MAX_AC || ucAC < 0 )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STAFetchPktCB bad input" );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STAFetchPktCB bad input\n" );
         return VOS_STATUS_E_FAILURE;
     }
 
@@ -496,12 +480,12 @@ static VOS_STATUS WLANBAP_STAFetchPktCB
     if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STAFetchPktCB vos_pkt_wrap_data_packet "
-             "failed status =%d", VosStatus );
+             "failed status =%d\n", VosStatus );
         kfree_skb(skb);  
         return VosStatus;
     }
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO, "%s: pVosPkt(vos_pkt_t *)=%p", __func__,
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO, "%s: pVosPkt(vos_pkt_t *)=%p\n", __FUNCTION__,
                pVosPkt );
 
     VosStatus = WLANBAP_XlateTxDataPkt( pctx->bapHdl, pPhyCtx->PhyLinkHdl,
@@ -510,7 +494,7 @@ static VOS_STATUS WLANBAP_STAFetchPktCB
     if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STAFetchPktCB WLANBAP_XlateTxDataPkt "
-             "failed status =%d", VosStatus );
+             "failed status =%d\n", VosStatus );
 
         // return the packet
         VosStatus = vos_pkt_return_packet( pVosPkt );
@@ -525,7 +509,7 @@ static VOS_STATUS WLANBAP_STAFetchPktCB
     // provide the meta-info BAP provided previously
     *tlMetaInfo = TlMetaInfo;
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: *vosDataBuff(vos_pkt_t *)=%p", __func__, *vosDataBuff );
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: *vosDataBuff(vos_pkt_t *)=%p\n", __FUNCTION__, *vosDataBuff );
 
     return(VOS_STATUS_SUCCESS);
 } // WLANBAP_STAFetchPktCB()
@@ -561,12 +545,12 @@ static VOS_STATUS WLANBAP_STARxCB
     vos_pkt_t* pVosPacket;
     vos_pkt_t* pNextVosPacket;
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "WLANBAP_STARxCB" );
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "WLANBAP_STARxCB\n" );
 
     // sanity checking
     if ( pHddHdl == NULL || vosDataBuff == NULL || pRxMetaInfo == NULL )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STARxCB bad input" );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STARxCB bad input\n" );
         if(NULL != vosDataBuff)
         {
             VosStatus = vos_pkt_return_packet( vosDataBuff );
@@ -579,7 +563,7 @@ static VOS_STATUS WLANBAP_STARxCB
 
     if( NULL == ppctx )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STARxCB ClientCtx is NULL" );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STARxCB ClientCtx is NULL\n" );
         VosStatus = vos_pkt_return_packet( vosDataBuff );
         return VOS_STATUS_E_FAILURE;
     }
@@ -595,7 +579,7 @@ static VOS_STATUS WLANBAP_STARxCB
        // both "success" and "empty" are acceptable results
        if (!((VosStatus == VOS_STATUS_SUCCESS) || (VosStatus == VOS_STATUS_E_EMPTY)))
        {
-           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,"%s: Failure walking packet chain", __func__);
+           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,"%s: Failure walking packet chain", __FUNCTION__);
            return VOS_STATUS_E_FAILURE;
        }
        
@@ -606,7 +590,7 @@ static VOS_STATUS WLANBAP_STARxCB
        if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
        {
            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_FATAL, "WLANBAP_STARxCB WLANBAP_XlateRxDataPkt "
-           "failed status = %d", VosStatus );
+           "failed status = %d\n", VosStatus );
 
            VosStatus = VOS_STATUS_E_FAILURE;
 
@@ -619,7 +603,7 @@ static VOS_STATUS WLANBAP_STARxCB
        if(!VOS_IS_STATUS_SUCCESS( VosStatus ))
        {
            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s: Failure extracting skb from vos pkt. "
-             "VosStatus = %d", __func__, VosStatus );
+             "VosStatus = %d\n", __FUNCTION__, VosStatus );
 
            VosStatus = VOS_STATUS_E_FAILURE;
 
@@ -680,9 +664,9 @@ static VOS_STATUS WLANBAP_TxCompCB
     void* pOsPkt = NULL;
     BslPhyLinkCtxType* pctx;
     BslClientCtxType* ppctx;
-    static int num_packets;
+    static int num_packets = 0;
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO, "WLANBAP_TxCompCB. vosDataBuff(vos_pkt_t *)=%p", vosDataBuff );
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO, "WLANBAP_TxCompCB. vosDataBuff(vos_pkt_t *)=%p\n", vosDataBuff );
 
     // be aware that pHddHdl can be NULL or can point to the per association
     // BSL context from the register data plane. In either case it does not
@@ -692,7 +676,7 @@ static VOS_STATUS WLANBAP_TxCompCB
     // sanity checking
     if ( vosDataBuff == NULL )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_TxCompCB bad input" );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_TxCompCB bad input\n" );
         return VOS_STATUS_E_FAILURE;
     }
 
@@ -701,7 +685,7 @@ static VOS_STATUS WLANBAP_TxCompCB
     if(!VOS_IS_STATUS_SUCCESS( VosStatus ))
     {
         //This is bad but still try to free the VOSS resources if we can
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Failure extracting skb from vos pkt", __func__);
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Failure extracting skb from vos pkt", __FUNCTION__);
         vos_pkt_return_packet( vosDataBuff );
         return VOS_STATUS_E_FAILURE;
     }
@@ -722,7 +706,7 @@ static VOS_STATUS WLANBAP_TxCompCB
     num_packets = (num_packets + 1) % 4;
     if (num_packets == 0 )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO, "%s: Sending up number of completed packets.  num_packets = %d.", __func__, num_packets );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO, "%s: Sending up number of completed packets.  num_packets = %d.\n", __FUNCTION__, num_packets );
         WLANBAP_TxPacketMonitorHandler ( (v_PVOID_t) ppctx->bapHdl ); // our handle in BAP
     }
 
@@ -790,7 +774,7 @@ static void BslReleasePhyCtx
     v_U32_t OldMapVal;
     VOS_STATUS VosStatus = VOS_STATUS_SUCCESS;
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BslReleasePhyCtx" );
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BslReleasePhyCtx\n" );
 
     pPhyCtx->used = FALSE;
 
@@ -877,12 +861,12 @@ static VOS_STATUS WLANBAP_EventCB
     // sanity checking
     if ( pBapHCIEvent == NULL )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB bad input" );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB bad input\n" );
         return VOS_STATUS_E_FAILURE;
     }
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "WLANBAP_EventCB event=%d "
-       "assoc_specific=%d", pBapHCIEvent->bapHCIEventCode, AssocSpecificEvent );
+       "assoc_specific=%d\n", pBapHCIEvent->bapHCIEventCode, AssocSpecificEvent );
 
     if ( pHddHdl == NULL )
     {
@@ -900,7 +884,7 @@ static VOS_STATUS WLANBAP_EventCB
         }
         else
         {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_FATAL, "WLANBAP_EventCB bad input" );
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_FATAL, "WLANBAP_EventCB bad input\n" );
             return VOS_STATUS_E_FAILURE;
         }
     }
@@ -922,7 +906,7 @@ static VOS_STATUS WLANBAP_EventCB
     if(NULL == pctx)
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                     "pctx is NULL in %s", __func__);
+                     "pctx is NULL in %s", __FUNCTION__);
 
         return VOS_STATUS_E_FAULT;
 
@@ -934,7 +918,7 @@ static VOS_STATUS WLANBAP_EventCB
     if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB vos_pkt_get_packet "
-          "failed status=%d", VosStatus );
+          "failed status=%d\n", VosStatus );
         return(VosStatus);
     }
 
@@ -1218,7 +1202,7 @@ static VOS_STATUS WLANBAP_EventCB
             if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
             {
                 VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB WLANBAP_RegisterDataPlane "
-                  "failed status = %d", VosStatus );
+                  "failed status = %d\n", VosStatus );
                 // we still want to send the event upto app so do not bail
             }
             else
@@ -1281,7 +1265,7 @@ static VOS_STATUS WLANBAP_EventCB
         else
         {
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB unexpected HCI Phy Link Comp Evt "
-               "status =%d", pBapHCIEvent->u.btampPhysicalLinkCompleteEvent.status );
+               "status =%d\n", pBapHCIEvent->u.btampPhysicalLinkCompleteEvent.status );
         }
 
         break;
@@ -1333,7 +1317,7 @@ static VOS_STATUS WLANBAP_EventCB
         else
         {
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB unexpected HCI Dis Phy Link Comp Evt "
-               "status =%d reason =%d", pBapHCIEvent->u.btampDisconnectPhysicalLinkCompleteEvent.status,
+               "status =%d reason =%d\n", pBapHCIEvent->u.btampDisconnectPhysicalLinkCompleteEvent.status,
                        pBapHCIEvent->u.btampDisconnectPhysicalLinkCompleteEvent.reason );
         }
 
@@ -1455,7 +1439,7 @@ static VOS_STATUS WLANBAP_EventCB
     }
     default:
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB unexpected event" );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB unexpected event\n" );
 
         VosStatus = vos_pkt_return_packet( pVosPkt );
 
@@ -1474,7 +1458,7 @@ static VOS_STATUS WLANBAP_EventCB
         if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
         {
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB vos_pkt_push_head "
-          "status =%d", VosStatus );
+          "status =%d\n", VosStatus );
 
             // return the packet
             VosStatus = vos_pkt_return_packet( pVosPkt );
@@ -1489,7 +1473,7 @@ static VOS_STATUS WLANBAP_EventCB
     if(!VOS_IS_STATUS_SUCCESS( VosStatus ))
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s: Failure extracting skb from vos pkt. "
-          "VosStatus = %d", __func__, VosStatus );
+          "VosStatus = %d\n", __FUNCTION__, VosStatus );
 
         // return the packet
         VosStatus = vos_pkt_return_packet( pVosPkt );
@@ -1561,11 +1545,11 @@ static BOOL BslFindAndInitClientCtx
     BslClientCtxType* pctx;
     v_U8_t i;
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BslFindAndInitClientCtx" );
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BslFindAndInitClientCtx\n" );
 
     if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
     {
-        VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,"%s:BslClientLock already inited",__func__);
+        VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,"%s:BslClientLock already inited",__FUNCTION__);
         // return(0);
     }
 
@@ -1573,7 +1557,7 @@ static BOOL BslFindAndInitClientCtx
     {
         if ( !BslClientCtx[i].used )
         {
-            VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,"%s:BslClientCtx[%d] selected",__func__, i);
+            VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,"%s:BslClientCtx[%d] selected",__FUNCTION__, i);
             BslClientCtx[i].used = TRUE;
             break;
         }
@@ -1583,7 +1567,7 @@ static BOOL BslFindAndInitClientCtx
     {
         // no more clients can be supported
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslFindAndInitClientCtx no more "
-          "clients can be supported MAX=%d", BSL_MAX_CLIENTS );
+          "clients can be supported MAX=%d\n", BSL_MAX_CLIENTS );
         return FALSE;
     }
 
@@ -1597,7 +1581,7 @@ static BOOL BslFindAndInitClientCtx
     {
         pctx->used = FALSE;
 
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s:WLAN_GetNewHndl Failed",__func__);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s:WLAN_GetNewHndl Failed",__FUNCTION__);
 
         return(FALSE);
     }
@@ -1612,7 +1596,7 @@ static BOOL BslFindAndInitClientCtx
     {
         pctx->used = FALSE;
 
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s:WLAN_BAPRegsiterBAPCallaback Failed",__func__);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s:WLAN_BAPRegsiterBAPCallaback Failed",__FUNCTION__);
 
         return(FALSE);
     }
@@ -1646,7 +1630,7 @@ static void BslReleaseClientCtx
     vos_list_node_t* pLink;
     BslPhyLinksNodeType *pPhyNode;
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "BslReleaseClientCtx" );
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "BslReleaseClientCtx\n" );
 
     // an app can do this without cleaning up after itself i.e. it can have active associations and
     // data pending, we need to cleanup its mess
@@ -1728,7 +1712,7 @@ static BOOL BslFindAndInitPhyCtx
     vos_list_node_t* pLink;
     BslPhyLinksNodeType *pNode;
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "BslFindAndInitPhyCtx" );
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "BslFindAndInitPhyCtx\n" );
 
     for ( i=0; i<BSL_MAX_PHY_LINKS; i++ )
     {
@@ -1778,7 +1762,7 @@ static BOOL BslFindAndInitPhyCtx
         {
             // this could happen due to pool not being big enough, etc
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "BslFindAndInitPhyCtx failed to "
-             "get node from BslPhyLinksDescPool vstatus=%d", VosStatus );
+             "get node from BslPhyLinksDescPool vstatus=%d\n", VosStatus );
             BslReleasePhyCtx( *ppPhyCtx );
             return FALSE;
         }
@@ -1847,10 +1831,10 @@ static BOOL BslProcessHCICommand
         cmdOpcode = ( cmdOpcode & 0xFF ) << 8 | ( cmdOpcode & 0xFF00 ) >> 8;
     }
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "BslProcessHCICommand: cmdOpcode = %hx", cmdOpcode );
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "BslProcessHCICommand: cmdOpcode = %hx\n", cmdOpcode );
 
     for(i=0; i<4; i++)
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BslProcessHCICommand: *pBuf before advancepTmp[%x] = %x", i,pTmp[i] );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BslProcessHCICommand: *pBuf before advancepTmp[%x] = %x\n", i,pTmp[i] );
 
     pBuf+=CMD_TLV_TYPE_AND_LEN_SIZE;
 
@@ -1888,7 +1872,7 @@ static BOOL BslProcessHCICommand
         Status = BslFindAndInitPhyCtx( pctx, CreatePhysicalLinkCmd.phy_link_handle,
                                        &pPhyCtx );
 
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "CreatePhysicalLinkCmd.phy_link_handle=%d",CreatePhysicalLinkCmd.phy_link_handle);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "CreatePhysicalLinkCmd.phy_link_handle=%d\n",CreatePhysicalLinkCmd.phy_link_handle);
 
         if ( !Status )
         {
@@ -1956,7 +1940,7 @@ static BOOL BslProcessHCICommand
         Status = BslFindAndInitPhyCtx( pctx, AcceptPhysicalLinkCmd.phy_link_handle,
                                        &pPhyCtx );
 
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "AcceptPhysicalLinkCmd.phy_link_handle=%d",AcceptPhysicalLinkCmd.phy_link_handle);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "AcceptPhysicalLinkCmd.phy_link_handle=%d\n",AcceptPhysicalLinkCmd.phy_link_handle);
 
         if ( !Status )
         {
@@ -1999,7 +1983,7 @@ static BOOL BslProcessHCICommand
         Count = Count - 3;//Type and length field lengths are not needed
         pTmp = pBuf;
         for(i=0; i<4; i++)
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BslProcessHCICommand: *pBuf in Disconnect phy link pTmp[%x] = %x", i,pTmp[i] );
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BslProcessHCICommand: *pBuf in Disconnect phy link pTmp[%x] = %x\n", i,pTmp[i] );
         // unpack
         UnpackStatus = btampUnpackTlvHCI_Disconnect_Physical_Link_Cmd( NULL,
                        pBuf, Count, &DisconnectPhysicalLinkCmd );
@@ -2312,7 +2296,7 @@ static BOOL BslProcessHCICommand
 
         /* Flush the TX queue */
 //#ifdef BAP_DEBUG
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s:HCI Flush command  - will flush Tx Queue", __func__);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s:HCI Flush command  - will flush Tx Queue", __FUNCTION__);
 //#endif //BAP_DEBUG
         // JEZ100604: Temporary short cut
         pPhyCtx = &BslPhyLinkCtx[0];
@@ -2346,7 +2330,7 @@ static BOOL BslProcessHCICommand
         }
 
         /* Flush the TX queue */
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s:HCI Flush command  - will flush Tx Queue for pkt type %d", __func__, FlushCmd.packet_type);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s:HCI Flush command  - will flush Tx Queue for pkt type %d", __FUNCTION__, FlushCmd.packet_type);
         // We support BE traffic only
         if(WLANTL_AC_BE == FlushCmd.packet_type)
         {
@@ -3252,7 +3236,7 @@ static BOOL BslProcessHCICommand
         // unpack
 
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BslProcessHCICommand: HCI_Write_Remote_AMP_ASSOC_Cmd Count = %d", Count);
-        DUMPLOG(1, __func__, "HCI_Write_Remote_AMP_ASSOC cmd",
+        DUMPLOG(1, __FUNCTION__, "HCI_Write_Remote_AMP_ASSOC cmd",
                 pBuf,
                 Count);
 
@@ -3543,10 +3527,10 @@ static BOOL BslProcessACLDataTx
     struct sk_buff *skb;
 #endif
 #if 0
-    static int num_packets;
+    static int num_packets = 0;
 #endif
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "BslProcessACLDataTx" );
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "BslProcessACLDataTx\n" );
 
     // need to find the PHY link for this ACL data pkt based on phy_link_handle
     // TODO need some endian-ness check?
@@ -3570,7 +3554,7 @@ static BOOL BslProcessACLDataTx
         if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
         {
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx WLANBAP_GetAcFromTxDataPkt "
-                 "failed status =%d", VosStatus );
+                 "failed status =%d\n", VosStatus );
 
             Ac = WLANTL_AC_BE;
         }
@@ -3602,7 +3586,7 @@ static BOOL BslProcessACLDataTx
             if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
             {
                 VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx WLANBAP_STAPktPending "
-                "failed status =%d", VosStatus );
+                "failed status =%d\n", VosStatus );
                 VOS_ASSERT(0);
             }
         }
@@ -3612,7 +3596,7 @@ static BOOL BslProcessACLDataTx
     else
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx attempting to send "
-          "data for a non-existant assocation" );
+          "data for a non-existant assocation\n" );
 
         return(FALSE);
     }
@@ -3720,6 +3704,7 @@ int BSL_Init ( v_PVOID_t  pvosGCtx )
         return 0;
     }
 
+#ifdef WLAN_SOFTAP_FEATURE
     if (VOS_STA_SAP_MODE == hdd_get_conparam())
     {
         status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
@@ -3736,6 +3721,7 @@ int BSL_Init ( v_PVOID_t  pvosGCtx )
         }
      }
     else
+#endif
         pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
 
 
@@ -3814,7 +3800,7 @@ int BSL_Init ( v_PVOID_t  pvosGCtx )
     if (err < 0)
     {
         VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                  "Unable to register HCI device, err=%d", err);
+                  "Unable to register HCI device, err=%d\n", err);
         pctx->hdev = NULL;
         hci_free_dev(hdev);
         return -ENODEV;
@@ -4045,7 +4031,7 @@ static int BSL_Flush(struct hci_dev *hdev)
     BslPhyLinkCtxType* pPhyCtx;
 
     //VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BSL_Flush - will flush ALL Tx Queues");
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s - will flush ALL Tx Queues", __func__);
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s - will flush ALL Tx Queues", __FUNCTION__);
 
     /* Flush the TX queue */
     // JEZ100604: Temporary short cut
@@ -4097,22 +4083,22 @@ static int BSL_Write(struct sk_buff *skb)
     //char *bslBuff = NULL;
     BslHciWorkStructure *pHciContext;
 
-    //VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s", __func__);
+    //VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s", __FUNCTION__);
 
     // Sanity check inputs
     if ( skb == NULL )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: skb is bad i/p", __func__);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: skb is bad i/p", __FUNCTION__);
         //return -EFAULT; /* Bad address */
         return 0;
     }
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: Count (skb->len)=%d", __func__, skb->len);
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: Count (skb->len)=%d", __FUNCTION__, skb->len);
 
     // Sanity check inputs
     if ( 0 == skb->len )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: skb is empty", __func__);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: skb is empty", __FUNCTION__);
         //return -EFAULT; /* Bad address */
         return 0;
     }
@@ -4122,7 +4108,7 @@ static int BSL_Write(struct sk_buff *skb)
     // Sanity check the HCI device in the skb
     if ( hdev == NULL )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: Frame for Unknown HCI device (hdev=NULL)", __func__);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: Frame for Unknown HCI device (hdev=NULL)", __FUNCTION__);
         //return -ENODEV; /* no device */
         return 0;
     }
@@ -4132,7 +4118,7 @@ static int BSL_Write(struct sk_buff *skb)
     // Sanity check inputs
     if ( pctx == NULL )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: pctx is bad i/p", __func__);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: pctx is bad i/p", __FUNCTION__);
         //return -EFAULT; /* Bad address */
         return 0;
         /* Maybe I should return "no device" */
@@ -4146,7 +4132,7 @@ static int BSL_Write(struct sk_buff *skb)
         // Directly execute the data write
         VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
                   "%s: HCI ACL data tx, skb=%p",
-                  __func__, skb);
+                  __FUNCTION__, skb);
         // ACL data
         hdev->stat.acl_tx++;
         // Correct way of doing this...
@@ -4161,7 +4147,7 @@ static int BSL_Write(struct sk_buff *skb)
         break;
     case HCI_COMMAND_PKT:
         // Defer the HCI command writes
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: HCI command", __func__);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: HCI command", __FUNCTION__);
         hdev->stat.cmd_tx++;
 
         // Allocate an HCI context. To use as a "container" for the "work" to be deferred.
@@ -4170,7 +4156,7 @@ static int BSL_Write(struct sk_buff *skb)
         {
             // no memory for HCI context.  Nothing we can do but drop
             VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                      "%s: Unable to allocate context", __func__);
+                      "%s: Unable to allocate context", __FUNCTION__);
             kfree_skb(skb);
             return 0;
         }
@@ -4186,14 +4172,14 @@ static int BSL_Write(struct sk_buff *skb)
 
         VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
                   "%s: Scheduling work for skb %p, BT-AMP Client context %p, work %p",
-                  __func__, skb, pctx, pHciContext);
+                  __FUNCTION__, skb, pctx, pHciContext);
 
         status = schedule_work(&pHciContext->hciInterfaceProcessing);
 
         // Check result
         if ( 0 == status )
         {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s: hciInterfaceProcessing work already queued. This should never happen.", __func__);
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s: hciInterfaceProcessing work already queued. This should never happen.", __FUNCTION__);
         }
 
 
@@ -4202,7 +4188,7 @@ static int BSL_Write(struct sk_buff *skb)
         written = skb->len;
         break;
     case HCI_SCODATA_PKT:
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: unknown type", __func__);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: unknown type", __FUNCTION__);
         hdev->stat.sco_tx++;
         // anything else including HCI events and SCO data
         status = FALSE;
@@ -4250,12 +4236,12 @@ static void bslWriteFinish(struct work_struct *work)
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_LOW,
               "%s: Entered, context %p",
-              __func__, pctx);
+              __FUNCTION__, pctx);
 
     // Sanity check inputs
     if ( pctx == NULL )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: pctx is bad i/p", __func__);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: pctx is bad i/p", __FUNCTION__);
         return; // -EFAULT; /* Bad address */
     }
 
@@ -4266,18 +4252,18 @@ static void bslWriteFinish(struct work_struct *work)
     // Sanity check inputs
     if ( skb == NULL )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: skb is bad i/p", __func__);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: skb is bad i/p", __FUNCTION__);
         return; // -EFAULT; /* Bad address */
     }
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: Count (skb->len)=%d", __func__, skb->len);
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: Count (skb->len)=%d", __FUNCTION__, skb->len);
 
     hdev = (struct hci_dev *)(skb->dev);
 
     // Sanity check the HCI device in the skb
     if ( hdev == NULL )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: Frame for Unknown HCI device (hdev=NULL)", __func__);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: Frame for Unknown HCI device (hdev=NULL)", __FUNCTION__);
         return; // -ENODEV; /* no device */
     }
 
@@ -4285,7 +4271,7 @@ static void bslWriteFinish(struct work_struct *work)
     // Sanity check inputs
     if ( pctx != (BslClientCtxType *)hci_get_drvdata(hdev));
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: pctx and hdev not consistent - bad i/p", __func__);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: pctx and hdev not consistent - bad i/p", __FUNCTION__);
         return; // -EFAULT; /* Bad address */
         /* Maybe I should return "no device" */
         //return -ENODEV; /* no device */
@@ -4295,7 +4281,7 @@ static void bslWriteFinish(struct work_struct *work)
     switch (bt_cb(skb)->pkt_type)
     {
     case HCI_COMMAND_PKT:
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: HCI command", __func__);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: HCI command", __FUNCTION__);
         hdev->stat.cmd_tx++;
         // HCI command
         status = BslProcessHCICommand( pctx, skb->data, skb->len-CMD_TLV_TYPE_AND_LEN_SIZE);
@@ -4304,7 +4290,7 @@ static void bslWriteFinish(struct work_struct *work)
         written = skb->len;
         break;
     case HCI_SCODATA_PKT:
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: unknown type", __func__);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: unknown type", __FUNCTION__);
         hdev->stat.sco_tx++;
         // anything else including HCI events and SCO data
         status = FALSE;
@@ -4317,7 +4303,7 @@ static void bslWriteFinish(struct work_struct *work)
 
     VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
               "%s: Freeing skb %p",
-              __func__, skb);
+              __FUNCTION__, skb);
 
     consume_skb(skb);
 
@@ -4336,7 +4322,7 @@ VOS_STATUS WLANBAP_SetConfig
     // sanity checking
     if ( pConfig == NULL )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_SetConfig bad input" );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_SetConfig bad input\n" );
         return VOS_STATUS_E_FAILURE;
     }
     pctx = gpBslctx;
@@ -4351,7 +4337,7 @@ VOS_STATUS WLANBAP_SetConfig
     status = WLANBAP_GetNewHndl(&pctx->bapHdl);
     if ( !VOS_IS_STATUS_SUCCESS( status ) )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_SetConfig can't get BAP handle" );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_SetConfig can't get BAP handle\n" );
         return VOS_STATUS_E_FAILURE;
     }
 
@@ -4359,7 +4345,7 @@ VOS_STATUS WLANBAP_SetConfig
     status = WLAN_BAPSetConfig(pctx->bapHdl, pConfig);
     if ( !VOS_IS_STATUS_SUCCESS( status ) )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_SetConfig can't set BAP config" );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_SetConfig can't set BAP config\n" );
         return VOS_STATUS_E_FAILURE;
     }
 
@@ -4392,7 +4378,7 @@ VOS_STATUS WLANBAP_RegisterWithHCI(hdd_adapter_t *pAdapter)
     if(NULL != pctx->hdev)
     {
         VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_WARN,
-                  "Already registered as HCI device");
+                  "Already registered as HCI device\n");
         return VOS_STATUS_SUCCESS;
     }
 
@@ -4465,7 +4451,7 @@ VOS_STATUS WLANBAP_RegisterWithHCI(hdd_adapter_t *pAdapter)
     if (err < 0)
     {
         VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                  "Unable to register HCI device, err=%d", err);
+                  "Unable to register HCI device, err=%d\n", err);
         pctx->hdev = NULL;
         hci_free_dev(hdev);
         return VOS_STATUS_E_FAULT;

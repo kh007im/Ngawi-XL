@@ -1,24 +1,4 @@
 /*
- * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
- *
- * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
- *
- *
- * Permission to use, copy, modify, and/or distribute this software for
- * any purpose with or without fee is hereby granted, provided that the
- * above copyright notice and this permission notice appear in all
- * copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
- * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
- * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
- * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
- * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
- * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- */
-/*
  * Copyright (c) 2012, The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
@@ -40,25 +20,17 @@
  */
 
 /**=========================================================================
-
+  
   \file  vos_timer.c
-
+  
   \brief virtual Operating System Servies (vOS)
-
+               
    Definitions for vOSS Timer services
-<<<<<<< HEAD:CORE/VOSS/src/vos_timer.c
   
    Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
    
    Qualcomm Confidential and Proprietary.
   
-=======
-
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-
-   Qualcomm Technologies Confidential and Proprietary.
-
->>>>>>> f7413b6... wlan: voss: remove obsolete "INTEGRATED_SOC" featurization:prima/CORE/VOSS/src/vos_timer.c
   ========================================================================*/
 
 /* $Header$ */
@@ -87,7 +59,7 @@
 /*----------------------------------------------------------------------------
  * Static Variable Definitions
  * -------------------------------------------------------------------------*/
-static unsigned int        persistentTimerCount;
+static unsigned int        persistentTimerCount = 0;
 static vos_lock_t          persistentTimerCountLock;
 // static sleep_okts_handle   sleepClientHandle;
 
@@ -116,27 +88,30 @@ static void tryAllowingSleep( VOS_TIMER_TYPE type )
 
 
 /*----------------------------------------------------------------------------
+  
+  \brief  vos_linux_timer_callback() - internal vos entry point which is 
+          called when the timer interval expires 
 
-  \brief  vos_linux_timer_callback() - internal vos entry point which is
-          called when the timer interval expires
+  This function in turn calls the vOS client callback and changes the 
+  state of the timer from running (ACTIVE) to expired (INIT). 
+  
+  
+  \param uTimerID - return value of the timeSetEvent() from the 
+      vos_timer_start() API which 
 
-  This function in turn calls the vOS client callback and changes the
-  state of the timer from running (ACTIVE) to expired (INIT).
+  \param dwUser - this is supplied by the fourth parameter of the timeSetEvent()
+      which is the timer structure being passed as the userData
 
+  \param uMsg - Reserved / Not Used
 
-  \param data - pointer to the timer control block which describes the
-                timer that expired
+  \param dw1  - Reserved / Not Used
 
+  \param dw2  - Reserved / Not Used
+  
   \return  nothing
-
-  Note: function signature is defined by the Linux kernel.  The fact
-  that the argument is "unsigned long" instead of "void *" is
-  unfortunately imposed upon us.  But we can safely pass a pointer via
-  this parameter for LP32 and LP64 architectures.
-
   --------------------------------------------------------------------------*/
 
-static void vos_linux_timer_callback (unsigned long data)
+static void vos_linux_timer_callback ( v_U32_t data ) 
 {
    vos_timer_t *timer = ( vos_timer_t *)data; 
    vos_msg_t msg;
@@ -152,7 +127,7 @@ static void vos_linux_timer_callback (unsigned long data)
 
    if (timer == NULL)
    {
-     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s Null pointer passed in!",__func__);
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s Null pointer passed in!",__FUNCTION__);
      return;
    }
 
@@ -214,13 +189,13 @@ static void vos_linux_timer_callback (unsigned long data)
          
       //Serialize to the Tx thread
       sysBuildMessageHeader( SYS_MSG_ID_TX_TIMER, &msg );
-      msg.callback = callback;
-      msg.bodyptr  = userData;
-      msg.bodyval  = 0;
+      msg.bodyptr  = callback;
+      msg.bodyval  = (v_U32_t)userData; 
        
       if(vos_tx_mq_serialize( VOS_MQ_ID_SYS, &msg ) == VOS_STATUS_SUCCESS)
          return;
    }
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
    else if ( vos_sched_is_rx_thread( threadId ) )
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, 
@@ -228,13 +203,13 @@ static void vos_linux_timer_callback (unsigned long data)
          
       //Serialize to the Rx thread
       sysBuildMessageHeader( SYS_MSG_ID_RX_TIMER, &msg );
-      msg.callback = callback;
-      msg.bodyptr  = userData;
-      msg.bodyval  = 0;
+      msg.bodyptr  = callback;
+      msg.bodyval  = (v_U32_t)userData; 
        
       if(vos_rx_mq_serialize( VOS_MQ_ID_SYS, &msg ) == VOS_STATUS_SUCCESS)
          return;
    }
+#endif
    else 
    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
@@ -242,9 +217,8 @@ static void vos_linux_timer_callback (unsigned long data)
                     
       // Serialize to the MC thread
       sysBuildMessageHeader( SYS_MSG_ID_MC_TIMER, &msg );
-      msg.callback = callback;
-      msg.bodyptr  = userData;
-      msg.bodyval  = 0;
+      msg.bodyptr  = callback;
+      msg.bodyval  = (v_U32_t)userData; 
        
       if(vos_mq_post_message( VOS_MQ_ID_SYS, &msg ) == VOS_STATUS_SUCCESS)
         return;
@@ -334,7 +308,7 @@ static void vos_timer_clean()
        timer_node_t *ptimerNode;
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                  "%s: List is not Empty. listSize %d ",
-                 __func__, (int)listSize);
+                 __FUNCTION__, (int)listSize);
 
        do
        {
@@ -430,7 +404,7 @@ VOS_STATUS vos_timer_init_debug( vos_timer_t *timer, VOS_TIMER_TYPE timerType,
    if ((timer == NULL) || (callback == NULL)) 
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-                "%s: Null params being passed",__func__);
+                "%s: Null params being passed",__FUNCTION__);
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAULT;
    }
@@ -440,7 +414,7 @@ VOS_STATUS vos_timer_init_debug( vos_timer_t *timer, VOS_TIMER_TYPE timerType,
    if(timer->ptimerNode == NULL)
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-                "%s: Not able to allocate memory for timeNode",__func__);
+                "%s: Not able to allocate memory for timeNode",__FUNCTION__);
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAULT;
    }
@@ -457,7 +431,7 @@ VOS_STATUS vos_timer_init_debug( vos_timer_t *timer, VOS_TIMER_TYPE timerType,
     if(VOS_STATUS_SUCCESS != vosStatus)
     {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-             "%s: Unable to insert node into List vosStatus %d", __func__, vosStatus);
+             "%s: Unable to insert node into List vosStatus %d\n", __FUNCTION__, vosStatus);
     }
    
    // set the various members of the timer structure 
@@ -483,7 +457,7 @@ VOS_STATUS vos_timer_init( vos_timer_t *timer, VOS_TIMER_TYPE timerType,
    if ((timer == NULL) || (callback == NULL)) 
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-                "%s: Null params being passed",__func__);
+                "%s: Null params being passed",__FUNCTION__);
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAULT;
    }
@@ -548,7 +522,7 @@ VOS_STATUS vos_timer_destroy ( vos_timer_t *timer )
    if ( NULL == timer )
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-                "%s: Null timer pointer being passed",__func__);
+                "%s: Null timer pointer being passed",__FUNCTION__);
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAULT;
    }
@@ -557,7 +531,7 @@ VOS_STATUS vos_timer_destroy ( vos_timer_t *timer )
    if ( LINUX_TIMER_COOKIE != timer->platformInfo.cookie )
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-                "%s: Cannot destroy uninitialized timer",__func__);
+                "%s: Cannot destroy uninitialized timer",__FUNCTION__);
       return VOS_STATUS_E_INVAL;
    }
    
@@ -623,7 +597,7 @@ VOS_STATUS vos_timer_destroy ( vos_timer_t *timer )
    if ( NULL == timer )
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-                "%s: Null timer pointer being passed",__func__);
+                "%s: Null timer pointer being passed",__FUNCTION__);
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAULT;
    }
@@ -632,7 +606,7 @@ VOS_STATUS vos_timer_destroy ( vos_timer_t *timer )
    if ( LINUX_TIMER_COOKIE != timer->platformInfo.cookie )
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-                "%s: Cannot destroy uninitialized timer",__func__);
+                "%s: Cannot destroy uninitialized timer",__FUNCTION__);
       return VOS_STATUS_E_INVAL;
    }
    spin_lock_irqsave( &timer->platformInfo.spinlock,flags );
@@ -723,12 +697,9 @@ VOS_STATUS vos_timer_start( vos_timer_t *timer, v_U32_t expirationTime )
    // Check if timer refers to an uninitialized object
    if ( LINUX_TIMER_COOKIE != timer->platformInfo.cookie )
    {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-          "%s: Cannot start uninitialized timer",__func__);
-      if ( LINUX_INVALID_TIMER_COOKIE != timer->platformInfo.cookie )
-      {
-         VOS_ASSERT(0);
-      }
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+                "%s: Cannot start uninitialized timer",__FUNCTION__);
+      VOS_ASSERT(0);
       return VOS_STATUS_E_INVAL;
    }
 
@@ -793,6 +764,10 @@ VOS_STATUS vos_timer_start( vos_timer_t *timer, v_U32_t expirationTime )
     
   \return VOS_STATUS_SUCCESS - timer was successfully stopped.
   
+          VOS_STATUS_E_EMPTY - The implementation has detected an attempt 
+          to stop a timer that has not been started or has already 
+          expired.
+
           VOS_STATUS_E_INVAL - The value specified by timer is invalid.
           
           VOS_STATUS_E_FAULT  - timer is an invalid pointer.     
@@ -819,11 +794,8 @@ VOS_STATUS vos_timer_stop ( vos_timer_t *timer )
    if ( LINUX_TIMER_COOKIE != timer->platformInfo.cookie )
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-          "%s: Cannot stop uninitialized timer",__func__);
-      if ( LINUX_INVALID_TIMER_COOKIE != timer->platformInfo.cookie )
-      {
-         VOS_ASSERT(0);
-      }
+                "%s: Cannot stop uninitialized timer",__FUNCTION__);
+      VOS_ASSERT(0);
       return VOS_STATUS_E_INVAL;
    }
       
@@ -836,7 +808,7 @@ VOS_STATUS vos_timer_stop ( vos_timer_t *timer )
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
                 "%s: Cannot stop timer in state = %d",
                 __func__, timer->state);
-      return VOS_STATUS_SUCCESS;
+      return VOS_STATUS_E_FAULT;
    }
    
    timer->state = VOS_TIMER_STATE_STOPPED;
