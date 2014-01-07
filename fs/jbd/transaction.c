@@ -1964,9 +1964,6 @@ retry:
 			jbd_unlock_bh_state(bh);
 			spin_unlock(&journal->j_state_lock);
 			log_wait_commit(journal, tid);
-			unlock_buffer(bh);
-			log_wait_commit(journal, tid);
-			lock_buffer(bh);
 			goto retry;
 		}
 		/*
