@@ -3500,6 +3500,13 @@ CONFIG_ZSMALLOC=y
 # CONFIG_FT1000 is not set
 
 #
+# Memory Controller
+#
+CONFIG_CGROUP_MEM_RES_CTLR=y
+CONFIG_CGROUP_MEM_RES_CTLR_SWAP=y
+CONFIG_CGROUP_MEM_RES_CTLR_SWAP_ENABLED=y
+
+#
 # Speakup console speech
 #
 # CONFIG_SPEAKUP is not set
