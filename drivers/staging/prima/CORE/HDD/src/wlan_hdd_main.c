@@ -183,6 +183,7 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
    hdd_adapter_t *pAdapter = NULL;
 #ifdef WLAN_BTAMP_FEATURE
    VOS_STATUS status;
+   hdd_context_t *pHddCtx;
 #endif
 
    //Make sure that this callback corresponds to our device.
