@@ -63,7 +63,6 @@
 static unsigned char *fbram;
 static unsigned char *fbram_phys;
 static int fbram_size;
-static bool align_buffer = true;
 static boolean bf_supported;
 /* Set backlight on resume after 50 ms after first
  * pan display on the panel. This is to avoid panel specific

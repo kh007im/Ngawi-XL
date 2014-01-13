@@ -81,7 +81,7 @@ void end_swap_bio_read(struct bio *bio, int err)
 				imajor(bio->bi_bdev->bd_inode),
 				iminor(bio->bi_bdev->bd_inode),
 				(unsigned long long)bio->bi_sector);
-	goto out;
+		goto out;
 	}
 
 	SetPageUptodate(page);
@@ -123,7 +123,7 @@ void end_swap_bio_read(struct bio *bio, int err)
 		}
 	}
 
-out;
+out:
 	unlock_page(page);
 	bio_put(bio);
 }
