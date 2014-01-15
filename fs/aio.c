@@ -1703,6 +1703,7 @@ long do_io_submit(aio_context_t ctx_id, long nr,
 	 * AKPM: should this return a partial result if some of the IOs were
 	 * successfully submitted?
 	 */
+
 	for (i=0; i<nr; i++) {
 		struct iocb __user *user_iocb;
 		struct iocb tmp;
