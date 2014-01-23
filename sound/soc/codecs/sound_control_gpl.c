@@ -3,6 +3,7 @@
  *
  * WCD93xx sound control module
  * Copyright 2013 Paul Reioux
+ * Port on Xperia L by MattKhojim
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
