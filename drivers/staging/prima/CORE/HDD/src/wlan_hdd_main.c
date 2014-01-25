@@ -211,7 +211,6 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
    hdd_context_t *pHddCtx;
 #ifdef WLAN_BTAMP_FEATURE
    VOS_STATUS status;
-   hdd_context_t *pHddCtx;
 #endif
 
    //Make sure that this callback corresponds to our device.
@@ -4243,8 +4242,8 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
          case WLAN_HDD_P2P_GO:
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s [SSR] send stop ap to supplicant",
                                                        __func__);
-            cfg80211_ap_stopped(pAdapter->dev, GFP_KERNEL);
-            break;
+            //cfg80211_ap_stopped(pAdapter->dev, GFP_KERNEL);
+            //break;
 
          case WLAN_HDD_MONITOR:
             /* monitor interface start */
