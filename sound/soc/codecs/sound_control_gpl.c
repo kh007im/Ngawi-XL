@@ -30,12 +30,12 @@ extern struct snd_kcontrol_new *gpl_faux_snd_controls_ptr;
 
 #define CAMCORDER_MIC_OFFSET    20
 #define HANDSET_MIC_OFFSET      21
-#define SPEAKER_OFFSET          10
-#define HEADPHONE_L_OFFSET      8
-#define HEADPHONE_R_OFFSET      9
+#define SPEAKER_OFFSET          12
+#define HEADPHONE_L_OFFSET      10
+#define HEADPHONE_R_OFFSET      11
 
-#define HEADPHONE_PA_L_OFFSET	6
-#define HEADPHONE_PA_R_OFFSET	7
+#define HEADPHONE_PA_L_OFFSET	8
+#define HEADPHONE_PA_R_OFFSET	9
 
 static ssize_t cam_mic_gain_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
