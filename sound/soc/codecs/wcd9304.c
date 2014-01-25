@@ -6257,6 +6257,7 @@ static int sitar_codec_probe(struct snd_soc_codec *codec)
 	control = codec->control_data;
 
 	sitar = kzalloc(sizeof(struct sitar_priv), GFP_KERNEL);
+
 	if (!sitar) {
 		dev_err(codec->dev, "Failed to allocate private data\n");
 		return -ENOMEM;
