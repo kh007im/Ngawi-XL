@@ -6233,7 +6233,7 @@ static void sitar_codec_init_reg(struct snd_soc_codec *codec)
 
 #ifdef CONFIG_SOUND_CONTROL_HAX_GPL
 struct snd_kcontrol_new *gpl_faux_snd_controls_ptr =
-                (struct snd_kcontrol_new *)sitar_snd_controls;
+		(struct snd_kcontrol_new *)sitar_snd_controls;
 struct snd_soc_codec *fauxsound_codec_ptr;
 EXPORT_SYMBOL(fauxsound_codec_ptr);
 #endif
