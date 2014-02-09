@@ -28,16 +28,16 @@ extern struct snd_kcontrol_new *gpl_faux_snd_controls_ptr;
 #define SOUND_CONTROL_MAJOR_VERSION	2
 #define SOUND_CONTROL_MINOR_VERSION	1
 
-#define CAMCORDER_MIC_OFFSET    20
-#define HANDSET_MIC_OFFSET      21
-#define SPEAKER_OFFSET          10
-#define HEADPHONE_L_OFFSET      8
-#define HEADPHONE_R_OFFSET      9
+//#define CAMCORDER_MIC_OFFSET    20
+//#define HANDSET_MIC_OFFSET      21
+#define SPEAKER_OFFSET          12
+#define HEADPHONE_L_OFFSET      10
+#define HEADPHONE_R_OFFSET      11
 
-#define HEADPHONE_PA_L_OFFSET	6
-#define HEADPHONE_PA_R_OFFSET	7
+#define HEADPHONE_PA_L_OFFSET	8
+#define HEADPHONE_PA_R_OFFSET	9
 
-static ssize_t cam_mic_gain_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+/*static ssize_t cam_mic_gain_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
 	struct soc_mixer_control *l_mixer_ptr;
 
@@ -98,7 +98,7 @@ static ssize_t mic_gain_store(struct kobject *kobj, struct kobj_attribute *attr,
 	l_mixer_ptr->min += l_delta;
 
 	return (count);
-}
+}*/
 
 static ssize_t speaker_gain_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
@@ -230,7 +230,7 @@ static ssize_t sound_control_version_show(struct kobject *kobj, struct kobj_attr
 			SOUND_CONTROL_MINOR_VERSION);
 }
 
-static struct kobj_attribute cam_mic_gain_attribute =
+/*static struct kobj_attribute cam_mic_gain_attribute =
 	__ATTR(gpl_cam_mic_gain,
 		0666,
 		cam_mic_gain_show,
@@ -240,7 +240,7 @@ static struct kobj_attribute mic_gain_attribute =
 	__ATTR(gpl_mic_gain,
 		0666,
 		mic_gain_show,
-		mic_gain_store);
+		mic_gain_store);*/
 
 static struct kobj_attribute speaker_gain_attribute =
 	__ATTR(gpl_speaker_gain,
@@ -267,8 +267,8 @@ static struct kobj_attribute sound_control_version_attribute =
 
 static struct attribute *sound_control_attrs[] =
 	{
-		&cam_mic_gain_attribute.attr,
-		&mic_gain_attribute.attr,
+		/*&cam_mic_gain_attribute.attr,
+		&mic_gain_attribute.attr,*/
 		&speaker_gain_attribute.attr,
 		&headphone_gain_attribute.attr,
 		&headphone_pa_gain_attribute.attr,
