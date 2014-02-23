@@ -1638,10 +1638,19 @@ config MSM_CPUFREQ_LIMITER
 	  If in doubt, say N.
 
 config OC_ULTIMATE
-	bool "allow 1.566 GHZ max OC option"
+	bool "allow 1.512 GHZ max OC option"
 	default n
 	help
-	  Unlock the ultimate Overclock freq speed @ 1.566 GHz
+	  Unlock the ultimate Overclock freq speed @ 1.512 GHz
+
+config TURBO_BOOST
+	bool "Enable CPU Turbo boost option"
+	depends on CPU_OVERCLOCK
+	default y
+	help
+	  This option allows overclocking of 2 cores to higher clock rate
+	  than stock maximum.  When more than 2 cores are active, the clock
+	  is limited to stock max speeds
 
 config CPU_VOLTAGE_TABLE
 	bool "Enable CPU Voltage Table via sysfs for adjustements"
