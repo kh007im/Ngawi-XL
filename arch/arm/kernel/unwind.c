@@ -168,7 +168,7 @@ static const struct unwind_idx *unwind_find_origin(
 			start = mid + 1;
 		else
 			/* positive offset */
-			stop = mid;
+			stop = mid + 1;
 	}
 	pr_debug("%s -> %p\n", __func__, stop);
 	return stop;
