@@ -193,8 +193,8 @@ static int debugfs_atomic_t_get(void *data, u64 *val)
 DEFINE_SIMPLE_ATTRIBUTE(fops_atomic_t, debugfs_atomic_t_get,
 			debugfs_atomic_t_set, "%lld\n");
 
-struct dentry *debugfs_create_bool(const char *name, umode_t mode,
-				  struct dentry *parent, u32 *value)
+static struct dentry *debugfs_create_atomic_t(const char *name, umode_t mode,
+				struct dentry *parent, atomic_t *value)
 {
 	return debugfs_create_file(name, mode, parent, value, &fops_atomic_t);
 }

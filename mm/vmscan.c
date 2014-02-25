@@ -2852,7 +2852,7 @@ loop_again:
 
 			if (!zone_watermark_ok_safe(zone, testorder,
 					high_wmark_pages(zone), end_zone, 0)) {
-				unbalanced_zone = zone;
+				all_zones_ok = 0;
 				/*
 				 * We are still under min water mark.  This
 				 * means that we have a GFP_ATOMIC allocation
