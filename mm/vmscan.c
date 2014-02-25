@@ -1960,11 +1960,11 @@ static void get_scan_count(struct mem_cgroup_zone *mz, struct scan_control *sc,
 	/*
 	 * This scanning priority is essentially the inverse of IO cost.
 	 */
-	anon_prio = vmscan_swappiness(mz, sc);
+	anon_prio = vmscan_swappiness(mz,sc);
 #ifdef CONFIG_ZSWAP
-	file_prio = max_swappiness - vmscan_swappiness(sc);
+	file_prio = max_swappiness - vmscan_swappiness(mz,sc);
 #else
-	file_prio = 200 - vmscan_swappiness(mz, sc);
+	file_prio = 200 - vmscan_swappiness(mz,sc);
 #endif
 
 	/*
@@ -2868,7 +2868,7 @@ loop_again:
 
 			if (!zone_watermark_ok_safe(zone, testorder,
 					high_wmark_pages(zone), end_zone, 0)) {
-				all_zones_ok = 0;
+				unbalanced_zone = zone;
 				/*
 				 * We are still under min water mark.  This
 				 * means that we have a GFP_ATOMIC allocation
