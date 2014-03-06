@@ -1141,11 +1141,6 @@ static struct ctl_table vm_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= &zero,
-#ifdef CONFIG_ZSWAP
-		.extra2
-#else
-		.extra2
-#endif
 	},
 	{
 		.procname	= "nr_pdflush_threads",

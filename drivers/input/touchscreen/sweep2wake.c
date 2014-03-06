@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- *
- * 11/18/2013 - port my N4's vertical sweep to N5
- * 		Paul Reioux <reioux@gmail.com>
  */
 
 #include <linux/kernel.h>
@@ -32,7 +29,9 @@
 #include <linux/slab.h>
 #include <linux/workqueue.h>
 #include <linux/input.h>
-#ifdef CONFIG_HAS_EARLYSUSPEND
+#ifndef CONFIG_HAS_EARLYSUSPEND
+#include <linux/lcd_notify.h>
+#else
 #include <linux/earlysuspend.h>
 #endif
 #include <linux/hrtimer.h>
@@ -57,33 +56,44 @@ MODULE_LICENSE("GPLv2");
 #define S2W_S2SONLY_DEFAULT	0
 #define S2W_PWRKEY_DUR          60
 
-#define DEFAULT_S2W_Y_MAX               1280
-#define DEFAULT_S2W_X_MAX               720
-#define DEFAULT_S2W_Y_LIMIT             DEFAULT_S2W_Y_MAX-100
-#define DEFAULT_S2W_X_B1                130
-#define DEFAULT_S2W_X_B2                360
-#define DEFAULT_S2W_X_FINAL             160
+#ifdef CONFIG_MACH_MSM8974_HAMMERHEAD
+/* Hammerhead aka Nexus 5 */
+#define S2W_Y_MAX               1920
+#define S2W_X_MAX               1080
+#define S2W_Y_LIMIT             S2W_Y_MAX-130
+#define S2W_X_B1                400
+#define S2W_X_B2                700
+#define S2W_X_FINAL             250
+#elif defined(CONFIG_MSM_8930_SA77)
+/* Mako aka Nexus 4 */
+#define S2W_Y_LIMIT             2350
+#define S2W_X_MAX               1540
+#define S2W_X_B1                500
+#define S2W_X_B2                1000
+#define S2W_X_FINAL             300
+#else
+/* defaults */
+#define S2W_Y_LIMIT             2350
+#define S2W_X_MAX               1540
+#define S2W_X_B1                500
+#define S2W_X_B2                1000
+#define S2W_X_FINAL             300
+#endif
+
 
 /* Resources */
 int s2w_switch = S2W_DEFAULT, s2w_s2sonly = S2W_S2SONLY_DEFAULT;
-bool s2w_scr_suspended = false;
 static int touch_x = 0, touch_y = 0;
 static bool touch_x_called = false, touch_y_called = false;
-static bool exec_count = true;
+static bool scr_suspended = false, exec_count = true;
 static bool scr_on_touch = false, barrier[2] = {false, false};
-//static struct notifier_block s2w_lcd_notif;
+#ifndef CONFIG_HAS_EARLYSUSPEND
+static struct notifier_block s2w_lcd_notif;
+#endif
 static struct input_dev * sweep2wake_pwrdev;
 static DEFINE_MUTEX(pwrkeyworklock);
 static struct workqueue_struct *s2w_input_wq;
 static struct work_struct s2w_input_work;
-
-static int s2w_start_posn = DEFAULT_S2W_X_B1;
-static int s2w_mid_posn = DEFAULT_S2W_X_B2;
-static int s2w_end_posn = (DEFAULT_S2W_X_MAX - DEFAULT_S2W_X_FINAL);
-static int s2w_threshold = DEFAULT_S2W_X_FINAL;
-//static int s2w_max_posn = DEFAULT_S2W_X_MAX;
-
-static int s2w_swap_coord = 0;
 
 /* Read cmdline for s2w */
 static int __init read_s2w_cmdline(char *s2w)
@@ -131,41 +141,34 @@ static void sweep2wake_reset(void) {
 }
 
 /* Sweep2wake main function */
-static void detect_sweep2wake(int sweep_coord, int sweep_height, bool st)
+static void detect_sweep2wake(int x, int y, bool st)
 {
-	int swap_temp1, swap_temp2;
-	int prev_coord = 0, next_coord = 0;
-	bool single_touch = st;
+        int prevx = 0, nextx = 0;
+        bool single_touch = st;
 #if S2W_DEBUG
         pr_info(LOGTAG"x,y(%4d,%4d) single:%s\n",
-                sweep_coord, sweep_height, (single_touch) ? "true" : "false");
+                x, y, (single_touch) ? "true" : "false");
 #endif
-	if (s2w_swap_coord == 1) {
-		//swap the coordinate system
-		swap_temp1 = sweep_coord;
-		swap_temp2 = sweep_height;
-
-		sweep_height = swap_temp1;
-		sweep_coord = swap_temp2;
-	}
-
-	//power on
-	if ((single_touch) && (s2w_scr_suspended == true) && (s2w_switch > 0)) {
-		prev_coord = 0;
-		next_coord = s2w_start_posn;
+	//left->right
+	if ((single_touch) && (scr_suspended == true) && (s2w_switch > 0 && !s2w_s2sonly)) {
+		prevx = 0;
+		nextx = S2W_X_B1;
 		if ((barrier[0] == true) ||
-		   ((sweep_coord > prev_coord) &&
-		    (sweep_coord < next_coord))) {
-			prev_coord = next_coord;
-			next_coord = s2w_mid_posn;
+		   ((x > prevx) &&
+		    (x < nextx) &&
+		    (y > 0))) {
+			prevx = nextx;
+			nextx = S2W_X_B2;
 			barrier[0] = true;
 			if ((barrier[1] == true) ||
-			   ((sweep_coord > prev_coord) &&
-			    (sweep_coord < next_coord))) {
-				prev_coord = next_coord;
+			   ((x > prevx) &&
+			    (x < nextx) &&
+			    (y > 0))) {
+				prevx = nextx;
 				barrier[1] = true;
-				if ((sweep_coord > prev_coord)) {
-					if (sweep_coord > s2w_end_posn) {
+				if ((x > prevx) &&
+				    (y > 0)) {
+					if (x > (S2W_X_MAX - S2W_X_FINAL)) {
 						if (exec_count) {
 							pr_info(LOGTAG"ON\n");
 							sweep2wake_pwrtrigger();
@@ -175,36 +178,27 @@ static void detect_sweep2wake(int sweep_coord, int sweep_height, bool st)
 				}
 			}
 		}
-	//power off
-	} else if ((single_touch) && (s2w_scr_suspended == false) && (s2w_switch > 0)) {
-		if (s2w_swap_coord == 1) {
-			//swap back for off scenario ONLY
-			swap_temp1 = sweep_coord;
-			swap_temp2 = sweep_height;
-
-			sweep_height = swap_temp1;
-			sweep_coord = swap_temp2;
-		}
-
+	//right->left
+	} else if ((single_touch) && (scr_suspended == false) && (s2w_switch > 0)) {
 		scr_on_touch=true;
-		prev_coord = (DEFAULT_S2W_X_MAX - DEFAULT_S2W_X_FINAL);
-		next_coord = DEFAULT_S2W_X_B2;
+		prevx = (S2W_X_MAX - S2W_X_FINAL);
+		nextx = S2W_X_B2;
 		if ((barrier[0] == true) ||
-		   ((sweep_coord < prev_coord) &&
-		    (sweep_coord > next_coord) &&
-		    (sweep_height > DEFAULT_S2W_Y_LIMIT))) {
-			prev_coord = next_coord;
-			next_coord = DEFAULT_S2W_X_B1;
+		   ((x < prevx) &&
+		    (x > nextx) &&
+		    (y > S2W_Y_LIMIT))) {
+			prevx = nextx;
+			nextx = S2W_X_B1;
 			barrier[0] = true;
 			if ((barrier[1] == true) ||
-			   ((sweep_coord < prev_coord) &&
-			    (sweep_coord > next_coord) &&
-			    (sweep_height > DEFAULT_S2W_Y_LIMIT))) {
-				prev_coord = next_coord;
+			   ((x < prevx) &&
+			    (x > nextx) &&
+			    (y > S2W_Y_LIMIT))) {
+				prevx = nextx;
 				barrier[1] = true;
-				if ((sweep_coord < prev_coord) &&
-				    (sweep_height > DEFAULT_S2W_Y_LIMIT)) {
-					if (sweep_coord < DEFAULT_S2W_X_FINAL) {
+				if ((x < prevx) &&
+				    (y > S2W_Y_LIMIT)) {
+					if (x < S2W_X_FINAL) {
 						if (exec_count) {
 							pr_info(LOGTAG"OFF\n");
 							sweep2wake_pwrtrigger();
@@ -216,141 +210,6 @@ static void detect_sweep2wake(int sweep_coord, int sweep_height, bool st)
 		}
 	}
 }
-
-/****************** SYSFS INTERFACE (START) ********************/
-static ssize_t s2w_start_posn_show(struct kobject *kobj,
-	struct kobj_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%i\n", s2w_start_posn);
-}
-
-static ssize_t s2w_start_posn_store(struct kobject *kobj,
-	struct kobj_attribute *attr, const char *buf, size_t count)
-{
-	unsigned int data;
-	if(sscanf(buf, "%i\n", &data) == 1)
-		s2w_start_posn = data;
-	else
-		pr_info("%s: unknown input!\n", __FUNCTION__);
-	return count;
-}
-
-static ssize_t s2w_mid_posn_show(struct kobject *kobj,
-	struct kobj_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%i\n", s2w_mid_posn);
-}
-
-static ssize_t s2w_mid_posn_store(struct kobject *kobj,
-	struct kobj_attribute *attr, const char *buf, size_t count)
-{
-	unsigned int data;
-	if(sscanf(buf, "%i\n", &data) == 1)
-		s2w_mid_posn = data;
-	else
-		pr_info("%s: unknown input!\n", __FUNCTION__);
-	return count;
-}
-
-static ssize_t s2w_end_posn_show(struct kobject *kobj,
-	struct kobj_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%i\n", s2w_end_posn);
-}
-
-static ssize_t s2w_end_posn_store(struct kobject *kobj,
-	struct kobj_attribute *attr, const char *buf, size_t count)
-{
-	unsigned int data;
-	if(sscanf(buf, "%i\n", &data) == 1)
-		s2w_end_posn = data;
-	else
-		pr_info("%s: unknown input!\n", __FUNCTION__);
-	return count;
-}
-
-static ssize_t s2w_threshold_show(struct kobject *kobj,
-	struct kobj_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%i\n", s2w_threshold);
-}
-
-static ssize_t s2w_threshold_store(struct kobject *kobj,
-	struct kobj_attribute *attr, const char *buf, size_t count)
-{
-	unsigned int data;
-	if(sscanf(buf, "%i\n", &data) == 1)
-		s2w_threshold = data;
-	else
-		pr_info("%s: unknown input!\n", __FUNCTION__);
-	return count;
-}
-
-static ssize_t s2w_swap_coord_show(struct kobject *kobj,
-	struct kobj_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%i\n", s2w_swap_coord);
-}
-
-static ssize_t s2w_swap_coord_store(struct kobject *kobj,
-	struct kobj_attribute *attr, const char *buf, size_t count)
-{
-	unsigned int data;
-	if(sscanf(buf, "%i\n", &data) == 1)
-		s2w_swap_coord = data;
-	else
-		pr_info("%s: unknown input!\n", __FUNCTION__);
-	return count;
-}
-
-static struct kobj_attribute s2w_start_posn_attribute =
-	__ATTR(s2w_start_posn,
-		0666,
-		s2w_start_posn_show,
-		s2w_start_posn_store);
-
-static struct kobj_attribute s2w_mid_posn_attribute =
-	__ATTR(s2w_mid_posn,
-		0666,
-		s2w_mid_posn_show,
-		s2w_mid_posn_store);
-
-static struct kobj_attribute s2w_end_posn_attribute =
-	__ATTR(s2w_end_posn,
-		0666,
-		s2w_end_posn_show,
-		s2w_end_posn_store);
-
-static struct kobj_attribute s2w_threshold_attribute =
-	__ATTR(s2w_threshold,
-		0666,
-		s2w_threshold_show,
-		s2w_threshold_store);
-
-static struct kobj_attribute s2w_swap_coord_attribute =
-	__ATTR(s2w_swap_coord,
-		0666,
-		s2w_swap_coord_show,
-		s2w_swap_coord_store);
-
-static struct attribute *s2w_parameters_attrs[] =
-	{
-		&s2w_start_posn_attribute.attr,
-		&s2w_mid_posn_attribute.attr,
-		&s2w_end_posn_attribute.attr,
-		&s2w_threshold_attribute.attr,
-		&s2w_swap_coord_attribute.attr,
-		NULL,
-	};
-
-static struct attribute_group s2w_parameters_attr_group =
-	{
-		.attrs = s2w_parameters_attrs,
-	};
-
-static struct kobject *s2w_parameters_kobj;
-/****************** SYSFS INTERFACE (END) ********************/
-
 
 static void s2w_input_callback(struct work_struct *unused) {
 
@@ -396,8 +255,7 @@ static void s2w_input_event(struct input_handle *handle, unsigned int type,
 }
 
 static int input_dev_filter(struct input_dev *dev) {
-	if (strstr(dev->name, "touch") ||
-	    strstr(dev->name, "synaptics_rmi4_i2c")) {
+	if (strstr(dev->name, "touch")) {
 		return 0;
 	} else {
 		return 1;
@@ -455,13 +313,30 @@ static struct input_handler s2w_input_handler = {
 	.id_table	= s2w_ids,
 };
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
+#ifndef CONFIG_HAS_EARLYSUSPEND
+static int lcd_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data)
+{
+	switch (event) {
+	case LCD_EVENT_ON_END:
+		scr_suspended = false;
+		break;
+	case LCD_EVENT_OFF_END:
+		scr_suspended = true;
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
+#else
 static void s2w_early_suspend(struct early_suspend *h) {
-	s2w_scr_suspended = true;
+	scr_suspended = true;
 }
 
 static void s2w_late_resume(struct early_suspend *h) {
-	s2w_scr_suspended = false;
+	scr_suspended = false;
 }
 
 static struct early_suspend s2w_early_suspend_handler = {
@@ -548,24 +423,9 @@ extern struct kobject *android_touch_kobj;
 struct kobject *android_touch_kobj;
 EXPORT_SYMBOL_GPL(android_touch_kobj);
 #endif
-
 static int __init sweep2wake_init(void)
 {
 	int rc = 0;
-	int sysfs_result;
-
-	s2w_parameters_kobj = kobject_create_and_add("s2w_parameters", kernel_kobj);
-	if (!s2w_parameters_kobj) {
-		pr_err("%s kobject create failed!\n", __FUNCTION__);
-		return -ENOMEM;
-        }
-
-	sysfs_result = sysfs_create_group(s2w_parameters_kobj, &s2w_parameters_attr_group);
-
-    if (sysfs_result) {
-		pr_info("%s sysfs create failed!\n", __FUNCTION__);
-		kobject_put(s2w_parameters_kobj);
-	}
 
 	sweep2wake_pwrdev = input_allocate_device();
 	if (!sweep2wake_pwrdev) {
@@ -593,7 +453,12 @@ static int __init sweep2wake_init(void)
 	if (rc)
 		pr_err("%s: Failed to register s2w_input_handler\n", __func__);
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
+#ifndef CONFIG_HAS_EARLYSUSPEND
+	s2w_lcd_notif.notifier_call = lcd_notifier_callback;
+	if (lcd_register_client(&s2w_lcd_notif) != 0) {
+		pr_err("%s: Failed to register lcd callback\n", __func__);
+	}
+#else
 	register_early_suspend(&s2w_early_suspend_handler);
 #endif
 
@@ -629,6 +494,9 @@ static void __exit sweep2wake_exit(void)
 #ifndef ANDROID_TOUCH_DECLARED
 	kobject_del(android_touch_kobj);
 #endif
+#ifndef CONFIG_HAS_EARLYSUSPEND
+	lcd_unregister_client(&s2w_lcd_notif);
+#endif
 	input_unregister_handler(&s2w_input_handler);
 	destroy_workqueue(s2w_input_wq);
 	input_unregister_device(sweep2wake_pwrdev);
@@ -638,3 +506,4 @@ static void __exit sweep2wake_exit(void)
 
 module_init(sweep2wake_init);
 module_exit(sweep2wake_exit);
+

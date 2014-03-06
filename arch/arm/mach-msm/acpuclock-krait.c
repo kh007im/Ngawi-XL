@@ -980,7 +980,7 @@ void acpuclk_set_vdd(unsigned int khz, int vdd_uv) {
         pr_warn("kernel: Using custom voltage!\n");
         mutex_unlock(&driver_lock);
 }
-#endif        /* CONFIG_CPU_VOTALGE_TABLE */
+#endif        /* CONFIG_CPU_VOLTAGE_TABLE */
 
 #ifdef CONFIG_CPU_FREQ_MSM
 static struct cpufreq_frequency_table freq_table[NR_CPUS][FREQ_TABLE_SIZE];

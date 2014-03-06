@@ -58,6 +58,8 @@ static int lowmem_adj[6] = {
 	1,
 	6,
 	12,
+	13,
+	15,
 };
 static int lowmem_adj_size = 4;
 static int lowmem_minfree[6] = {
@@ -65,9 +67,27 @@ static int lowmem_minfree[6] = {
 	2 * 1024,	/* 8MB */
 	4 * 1024,	/* 16MB */
 	16 * 1024,	/* 64MB */
+	20 * 1024,	/* 80MB */
+	28 * 1024,	/* 112MB */
+};
+static int lowmem_minfree_screen_off[6] = {
+	3 * 512,	/* 6MB */
+	2 * 1024,	/* 8MB */
+	4 * 1024,	/* 16MB */
+	16 * 1024,	/* 64MB */
+	20 * 1024,	/* 80MB */
+	28 * 1024,	/* 112MB */
+};
+static int lowmem_minfree_screen_on[6] = {
+	3 * 512,	/* 6MB */
+	2 * 1024,	/* 8MB */
+	4 * 1024,	/* 16MB */
+	16 * 1024,	/* 64MB */
+	20 * 1024,	/* 80MB */
+	28 * 1024,	/* 112MB */
 };
 static int lowmem_minfree_size = 4;
-static int lmk_fast_run = 1;
+static int lmk_fast_run = 0;
 
 static unsigned long lowmem_deathpending_timeout;
 
@@ -611,6 +631,10 @@ module_param_array_named(adj, lowmem_adj, int, &lowmem_adj_size,
 			 S_IRUGO | S_IWUSR);
 #endif
 module_param_array_named(minfree, lowmem_minfree, uint, &lowmem_minfree_size,
+			 S_IRUGO | S_IWUSR);
+module_param_array_named(minfree_screen_off, lowmem_minfree_screen_off, uint, &lowmem_minfree_size,
+			 S_IRUGO | S_IWUSR);
+module_param_array_named(minfree_screen_on, lowmem_minfree_screen_on, uint, &lowmem_minfree_size,
 			 S_IRUGO | S_IWUSR);
 module_param_named(debug_level, lowmem_debug_level, uint, S_IRUGO | S_IWUSR);
 module_param_named(lmk_fast_run, lmk_fast_run, int, S_IRUGO | S_IWUSR);
