@@ -65,7 +65,7 @@ extern int msm_turbo(int);
 #endif
 
 /** cmdline defs **/
-uint32_t maxscroff = 0;
+uint32_t maxscroff = 1;
 uint32_t maxscroff_freq = 702000;
 uint32_t old_max = 0;
 
