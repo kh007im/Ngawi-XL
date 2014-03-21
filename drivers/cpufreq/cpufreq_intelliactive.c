@@ -129,7 +129,7 @@ static bool io_is_busy = 1;
  * up_threshold_any_cpu_freq then do not let the frequency to drop below
  * sync_freq
  */
-static unsigned int up_threshold_any_cpu_load = 95;
+static unsigned int up_threshold_any_cpu_load = 80;
 static unsigned int sync_freq = 702000;
 static unsigned int up_threshold_any_cpu_freq = 1026000;
 
@@ -1269,8 +1269,8 @@ static void interactive_input_event(struct input_handle *handle,
 static int input_dev_filter(const char *input_dev_name)
 {
 	if (strstr(input_dev_name, "touchscreen") ||
+	    strstr(input_dev_name, "Cypress TTSP touchscreen") ||
 	    strstr(input_dev_name, "touch_dev") ||
-            strstr(input_dev_name, "atmel_mxt224e") ||
 	    strstr(input_dev_name, "sec-touchscreen") ||
 	    strstr(input_dev_name, "keypad")) {
 		return 0;
