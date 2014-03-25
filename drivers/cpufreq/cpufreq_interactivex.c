@@ -96,7 +96,6 @@ struct cpufreq_governor cpufreq_gov_interactivex = {
 	.name = "interactivex",
 	.governor = cpufreq_governor_interactivex,
 	.max_transition_latency = 10000000,
-	.owner = THIS_MODULE,
 };
 
 static void cpufreq_interactivex_timer(unsigned long data)
@@ -137,9 +136,9 @@ static void cpufreq_interactivex_timer(unsigned long data)
 	if (!idle_exit_time)
 		goto exit;
 
-	delta_idle = (unsigned int) cputime64_sub(now_idle, time_in_idle);
+	/* delta_idle = (unsigned int) cputime64_sub(now_idle, time_in_idle);
 	delta_time = (unsigned int) cputime64_sub(pcpu->timer_run_time,
-						  idle_exit_time);
+						  idle_exit_time); */
 
 	/*
 	 * If timer ran less than 1ms after short-term sample started, retry.
@@ -152,10 +151,10 @@ static void cpufreq_interactivex_timer(unsigned long data)
 	else
 		cpu_load = 100 * (delta_time - delta_idle) / delta_time;
 
-	delta_idle = (unsigned int) cputime64_sub(now_idle,
+	/*delta_idle = (unsigned int) cputime64_sub(now_idle,
 						pcpu->target_set_time_in_idle);
 	delta_time = (unsigned int) cputime64_sub(pcpu->timer_run_time,
-						  pcpu->target_set_time);
+						  pcpu->target_set_time);*/
 
 	if ((delta_time == 0) || (delta_idle > delta_time))
 		load_since_change = 0;
