@@ -43,6 +43,9 @@
 #include <linux/delay.h>
 #include <linux/swap.h>
 #include <linux/fs.h>
+#if defined (CONFIG_SWAP) && (defined (CONFIG_ZSWAP) || defined (CONFIG_ZRAM))
+#include <linux/fs.h>
+#endif
 
 #include <trace/events/memkill.h>
 
@@ -71,23 +74,23 @@ static int lowmem_minfree[6] = {
 	28 * 1024,	/* 112MB */
 };
 static int lowmem_minfree_screen_off[6] = {
-	3 * 512,	/* 6MB */
-	2 * 1024,	/* 8MB */
-	4 * 1024,	/* 16MB */
-	16 * 1024,	/* 64MB */
-	20 * 1024,	/* 80MB */
-	28 * 1024,	/* 112MB */
+	3 * 512,	/* 10MB */
+	2 * 1024,	/* 12MB */
+	4 * 1024,	/* 14MB */
+	16 * 1024,	/* 32MB */
+	20 * 1024,	/* 64MB */
+	28 * 1024,	/* 128MB */
 };
 static int lowmem_minfree_screen_on[6] = {
-	3 * 512,	/* 6MB */
-	2 * 1024,	/* 8MB */
-	4 * 1024,	/* 16MB */
-	16 * 1024,	/* 64MB */
-	20 * 1024,	/* 80MB */
-	28 * 1024,	/* 112MB */
+	3 * 512,	/* 8MB */
+	2 * 1024,	/* 10MB */
+	4 * 1024,	/* 12MB */
+	16 * 1024,	/* 14MB */
+	20 * 1024,	/* 32MB */
+	28 * 1024,	/* 64MB */
 };
-static int lowmem_minfree_size = 4;
-static int lmk_fast_run = 0;
+static int lowmem_minfree_size = 6;
+static int lmk_fast_run = 1;
 
 static unsigned long lowmem_deathpending_timeout;
 
@@ -101,14 +104,14 @@ static int test_task_flag(struct task_struct *p, int flag)
 {
 	struct task_struct *t = p;
 
-	do {
+	for_each_thread(p,t) {
 		task_lock(t);
 		if (test_tsk_thread_flag(t, flag)) {
 			task_unlock(t);
 			return 1;
 		}
 		task_unlock(t);
-	} while_each_thread(p, t);
+	}
 
 	return 0;
 }
@@ -271,6 +274,9 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	int other_file;
 	int average_free;
 	unsigned long nr_to_scan = sc->nr_to_scan;
+#if defined (CONFIG_SWAP) && (defined (CONFIG_ZSWAP) || defined (CONFIG_ZRAM))
+	struct sysinfo si;
+#endif
 
 	tsk = current->group_leader;
 	if ((tsk->flags & PF_EXITING) && test_task_flag(tsk, TIF_MEMDIE)) {
@@ -283,17 +289,23 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 			return 0;
 	}
 
+#if defined (CONFIG_SWAP) && (defined (CONFIG_ZSWAP) || defined (CONFIG_ZRAM))
+	si_swapinfo(&si);
 	other_free = global_page_state(NR_FREE_PAGES);
-
-	if (global_page_state(NR_SHMEM) + total_swapcache_pages <
-		global_page_state(NR_FILE_PAGES))
-		other_file = global_page_state(NR_FILE_PAGES) -
-						global_page_state(NR_SHMEM) -
+	other_file = global_page_state(NR_FILE_PAGES) -
+						global_page_state(NR_SHMEM) +
+						(si.totalswap >> 2) -
 						total_swapcache_pages;
-	else
-		other_file = 0;
+#else
+	other_free = global_page_state(NR_FREE_PAGES);
+	other_file = global_page_state(NR_FILE_PAGES) -
+						global_page_state(NR_SHMEM);
+#endif
 
 	tune_lmk_param(&other_free, &other_file, sc);
+
+	//pr_info("LMK: tuned other_free: %d\n", other_free);
+	//pr_info("LMK: tuned other_file: %d\n", other_file);
 
 	average_free = (other_free + other_file) >> 1;
 	if (lowmem_adj_size < array_size)
