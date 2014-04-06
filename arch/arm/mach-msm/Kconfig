@@ -1633,9 +1633,6 @@ config INTELLI_PLUG_DUAL
 	help
 	  Special dual-core mode for intelli-plug
 
-config SLEEPY_PLUG
-	bool "sleepy_plug by rmbq"
-
 config MSM_CPUFREQ_LIMITER
 	tristate "MSM CPU frequency limiter"
 	default n
@@ -2274,6 +2271,15 @@ config MSM_STANDALONE_POWER_COLLAPSE
        bool "Enable standalone power collapse"
        default n
 
+choice
+	prompt "CPU Hot Plug"
+	default MSM_MPDECISION
+config MSM_MPDECISION
+	bool "stock mp decision"
+config SLEEPY_PLUG
+	bool "sleepy_plug by rmbq"
+endchoice
+
 config MSM_GSBI9_UART
 	bool "Enable GSBI9 UART device"
 	default n
@@ -2610,7 +2616,7 @@ config MSM_L2_ERP_2BIT_PANIC
 
 config MSM_DCVS
 	bool "Use MSM DCVS for CPU/GPU Frequency control"
-	depends on MSM_SCM
+	depends on MSM_SCM && !SLEEPY_PLUG
 	help
 	  Enable support for MSM DCVS to control all CPU and GPU core frequencies.
 	  The DCVS manager allows idle driver to feed the idle information to the
