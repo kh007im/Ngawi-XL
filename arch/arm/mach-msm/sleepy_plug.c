@@ -33,20 +33,22 @@
 #undef DEBUG_SLEEPY_PLUG
 
 #define SLEEPY_PLUG_MAJOR_VERSION	1
-#define SLEEPY_PLUG_MINOR_VERSION	1
+#define SLEEPY_PLUG_MINOR_VERSION	2
 
 #define DEF_SAMPLING_MS			(1000)
 #define BUSY_SAMPLING_MS		(500)
 
-#define DOWN_THRESHOLD			8
-#define UP_THRESHOLD			11
-#define PEAK_THRESHOLD			30
+#define DOWN_THRESHOLD			6
+#define UP_THRESHOLD			8
+#define PEAK_THRESHOLD			20
 
 #define RQ_VALUE_ARRAY_DIM		5
 
 static DEFINE_MUTEX(sleepy_plug_mutex);
 
 struct delayed_work sleepy_plug_work;
+
+static struct workqueue_struct *sleepy_plug_wq;
 
 enum mp_decisions {
 	DO_NOTHING,
@@ -99,7 +101,7 @@ static enum mp_decisions mp_decision(void)
 		decision = CPU_DOWN;
 
 #ifdef DEBUG_SLEEPY_PLUG
-	pr_info("[SLEEPY] nr_cpu_online: %d|avg: %d|max: %d|new? %d\n",nr_cpu_online,crav.avg,crav.max,crav.max_is_new == true?1:0);
+	pr_info("[SLEEPY] nr_cpu_online: %d|avg: %d\n",nr_cpu_online,avg);
 #endif
 	return decision;
 }
@@ -114,7 +116,7 @@ static void __cpuinit sleepy_plug_work_fn(struct work_struct *work)
 
 		decision = mp_decision();
 #ifdef DEBUG_SLEEPY_PLUG
-		pr_info("decision: %d\n",decision);
+		pr_info("[SLEEPY] decision: %d\n",decision);
 #endif
 		if (!suspended) {
 			if (decision == CPU_UP) {
@@ -128,17 +130,17 @@ static void __cpuinit sleepy_plug_work_fn(struct work_struct *work)
 		}
 #ifdef DEBUG_SLEEPY_PLUG
 		else
-			pr_info("sleepy_plug is suspened!\n");
+			pr_info("[SLEEPY] sleepy_plug is suspened!\n");
 #endif
 	}
-	schedule_delayed_work_on(0, &sleepy_plug_work,
+	queue_delayed_work_on(0, sleepy_plug_wq, &sleepy_plug_work,
 		msecs_to_jiffies(sampling_time));
 }
 
 #ifdef CONFIG_POWERSUSPEND
 static void sleepy_plug_suspend(struct power_suspend *handler)
 {
-	cancel_delayed_work_sync(&sleepy_plug_work);
+	flush_workqueue(&sleepy_plug_work);
 
 	mutex_lock(&sleepy_plug_mutex);
 	suspended = true;
@@ -159,7 +161,7 @@ static void __cpuinit sleepy_plug_resume(struct power_suspend *handler)
 
 	cpu_up(1);
 
-	schedule_delayed_work_on(0, &sleepy_plug_work,
+	queue_delayed_work_on(0, sleepy_plug_wq, &sleepy_plug_work,
 		msecs_to_jiffies(10));
 }
 
@@ -172,16 +174,8 @@ static struct power_suspend sleepy_plug_power_suspend_driver = {
 static void sleepy_plug_input_event(struct input_handle *handle,
 		unsigned int type, unsigned int code, int value)
 {
-/*#ifdef DEBUG_SLEEPY_PLUG
-	pr_info("sleepy_plug touched!\n");
-#endif*/
-
-	cancel_delayed_work(&sleepy_plug_work);
-
-	sampling_time = BUSY_SAMPLING_MS;
-
-        schedule_delayed_work_on(0, &sleepy_plug_work,
-                msecs_to_jiffies(sampling_time));
+        queue_delayed_work_on(0, sleepy_plug_wq, &sleepy_plug_work,
+                msecs_to_jiffies(10));
 }
 
 static int input_dev_filter(const char *input_dev_name)
@@ -258,20 +252,22 @@ int __init sleepy_plug_init(void)
 {
 	int rc;
 
-	pr_info("sleepy_plug: version %d.%d by rmbq\n",
+	pr_info("[SLEEPY] sleepy_plug: version %d.%d by rmbq\n",
 		 SLEEPY_PLUG_MAJOR_VERSION,
 		 SLEEPY_PLUG_MINOR_VERSION);
 
-	sampling_time = DEF_SAMPLING_MS;
-
 	rc = input_register_handler(&sleepy_plug_input_handler);
+
+	sleepy_plug_wq = alloc_workqueue("sleepyplug",
+				WQ_HIGHPRI | WQ_UNBOUND, 1);
+
 #ifdef CONFIG_POWERSUSPEND
 	register_power_suspend(&sleepy_plug_power_suspend_driver);
 #endif
 
 	INIT_DELAYED_WORK(&sleepy_plug_work, sleepy_plug_work_fn);
-	schedule_delayed_work_on(0, &sleepy_plug_work,
-		msecs_to_jiffies(sampling_time));
+	queue_delayed_work_on(0, sleepy_plug_wq, &sleepy_plug_work,
+		msecs_to_jiffies(10));
 
 	return 0;
 }
