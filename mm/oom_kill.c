@@ -17,7 +17,6 @@
  *  kernel subsystems and hints as to where to find out what things do.
  */
 
-#define REALLY_WANT_TRACEPOINTS
 #include <linux/oom.h>
 #include <linux/mm.h>
 #include <linux/err.h>
@@ -36,13 +35,9 @@
 #include <linux/freezer.h>
 #include <linux/ftrace.h>
 #include <linux/ratelimit.h>
-#include <linux/freezer.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/oom.h>
-
-#define CREATE_TRACE_POINTS
-#include <trace/events/memkill.h>
 
 int sysctl_panic_on_oom;
 int sysctl_oom_kill_allocating_task;
@@ -63,11 +58,8 @@ void compare_swap_oom_score_adj(int old_val, int new_val)
 	struct sighand_struct *sighand = current->sighand;
 
 	spin_lock_irq(&sighand->siglock);
-	if (current->signal->oom_score_adj == old_val) {
+	if (current->signal->oom_score_adj == old_val)
 		current->signal->oom_score_adj = new_val;
-		delete_from_adj_tree(current);
-		add_2_adj_tree(current);
-	}
 	trace_oom_score_adj_update(current);
 	spin_unlock_irq(&sighand->siglock);
 }
@@ -88,8 +80,6 @@ int test_set_oom_score_adj(int new_val)
 	spin_lock_irq(&sighand->siglock);
 	old_val = current->signal->oom_score_adj;
 	current->signal->oom_score_adj = new_val;
-	delete_from_adj_tree(current);
-	add_2_adj_tree(current);
 	trace_oom_score_adj_update(current);
 	spin_unlock_irq(&sighand->siglock);
 
@@ -222,7 +212,7 @@ unsigned long oom_badness(struct task_struct *p, struct mem_cgroup *memcg,
 	 * task's rss, pagetable and swap space use.
 	 */
 	points = get_mm_rss(p->mm) + p->mm->nr_ptes +
-		get_mm_counter(p->mm, MM_SWAPENTS);
+		 get_mm_counter(p->mm, MM_SWAPENTS);
 	task_unlock(p);
 
 	/*
@@ -370,7 +360,7 @@ static struct task_struct *select_bad_process(unsigned int *ppoints,
 			return (struct task_struct *)(-1UL);
 		case OOM_SCAN_OK:
 			break;
-		};		
+		};
 		points = oom_badness(p, NULL, nodemask, totalpages);
 		if (!points || points < chosen_points)
 			continue;
@@ -528,11 +518,6 @@ void oom_kill_process(struct task_struct *p, gfp_t gfp_mask, int order,
 		task_pid_nr(victim), victim->comm, K(victim->mm->total_vm),
 		K(get_mm_counter(victim->mm, MM_ANONPAGES)),
 		K(get_mm_counter(victim->mm, MM_FILEPAGES)));
-	trace_oom_kill(
-		task_pid_nr(victim), victim->comm, K(victim->mm->total_vm),
-		K(get_mm_counter(victim->mm, MM_ANONPAGES)),
-		K(get_mm_counter(victim->mm, MM_FILEPAGES)),
-		victim->signal->oom_score_adj, order, victim_points);
 	task_unlock(victim);
 
 	/*
@@ -544,6 +529,7 @@ void oom_kill_process(struct task_struct *p, gfp_t gfp_mask, int order,
 	 * That thread will now get access to memory reserves since it has a
 	 * pending fatal signal.
 	 */
+	rcu_read_lock();
 	for_each_process(p)
 		if (p->mm == mm && !same_thread_group(p, victim) &&
 		    !(p->flags & PF_KTHREAD)) {
@@ -552,8 +538,6 @@ void oom_kill_process(struct task_struct *p, gfp_t gfp_mask, int order,
 
 			task_lock(p);	/* Protect ->comm from prctl() */
 			pr_err("Kill process %d (%s) sharing same memory\n",
-				task_pid_nr(p), p->comm);
-			trace_oom_kill_shared(
 				task_pid_nr(p), p->comm);
 			task_unlock(p);
 			do_send_sig_info(SIGKILL, SEND_SIG_FORCED, p, true);
@@ -601,6 +585,56 @@ int unregister_oom_notifier(struct notifier_block *nb)
 	return blocking_notifier_chain_unregister(&oom_notify_list, nb);
 }
 EXPORT_SYMBOL_GPL(unregister_oom_notifier);
+
+/*
+ * Try to acquire the OOM killer lock for the zones in zonelist.  Returns zero
+ * if a parallel OOM killing is already taking place that includes a zone in
+ * the zonelist.  Otherwise, locks all zones in the zonelist and returns 1.
+ */
+int try_set_zonelist_oom(struct zonelist *zonelist, gfp_t gfp_mask)
+{
+	struct zoneref *z;
+	struct zone *zone;
+	int ret = 1;
+
+	spin_lock(&zone_scan_lock);
+	for_each_zone_zonelist(zone, z, zonelist, gfp_zone(gfp_mask)) {
+		if (zone_is_oom_locked(zone)) {
+			ret = 0;
+			goto out;
+		}
+	}
+
+	for_each_zone_zonelist(zone, z, zonelist, gfp_zone(gfp_mask)) {
+		/*
+		 * Lock each zone in the zonelist under zone_scan_lock so a
+		 * parallel invocation of try_set_zonelist_oom() doesn't succeed
+		 * when it shouldn't.
+		 */
+		zone_set_flag(zone, ZONE_OOM_LOCKED);
+	}
+
+out:
+	spin_unlock(&zone_scan_lock);
+	return ret;
+}
+
+/*
+ * Clears the ZONE_OOM_LOCKED flag for all zones in the zonelist so that failed
+ * allocation attempts with zonelists containing them may now recall the OOM
+ * killer, if necessary.
+ */
+void clear_zonelist_oom(struct zonelist *zonelist, gfp_t gfp_mask)
+{
+	struct zoneref *z;
+	struct zone *zone;
+
+	spin_lock(&zone_scan_lock);
+	for_each_zone_zonelist(zone, z, zonelist, gfp_zone(gfp_mask)) {
+		zone_clear_flag(zone, ZONE_OOM_LOCKED);
+	}
+	spin_unlock(&zone_scan_lock);
+}
 
 /**
  * out_of_memory - kill the "best" process when we run out of memory
